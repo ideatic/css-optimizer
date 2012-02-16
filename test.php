@@ -36,11 +36,6 @@ h1, h1 a {
    text-decoration:none;
 }
 
-h3 {
-    border-bottom: 1px solid #555;
-     text-shadow: 0 1px 0 black;
-}
-
 #editor, #extra, #submit {
     clear:both;
     margin: 15px 0;
@@ -60,11 +55,17 @@ h3 {
     margin:0 20px;
 }
     
-#editor label {
+#editor label, h3 {
     display:block;
+    text-shadow: 0 1px 0 #fff;
     line-height:2.5em;
     font-size: 95%;
     font-weight: bold;
+}
+
+h3 {
+    border-bottom: 1px solid #555;
+    line-height:2em;
 }
 
 textarea, .CodeMirror{
@@ -106,6 +107,11 @@ textarea:hover, .CodeMirror:hover,textarea:focus, .CodeMirror-focused{
     color: #000000;
 }
 
+@-webkit-keyframes "slide" {
+   0% { left: 0; box-shadow: 10px 10px 10px black; }
+   100% { left: 50px; box-shadow: 5px 5px 5px black; }
+}
+
 CSS;
 echo prefix($css, array('compress' => true, 'optimize' => true));
 //echo $css;
@@ -114,6 +120,7 @@ echo prefix($css, array('compress' => true, 'optimize' => true));
     </head>
     <body>
         <h1><a href="">php_prefixer</a></h1>
+        <?php $process_data = do_optimization(); ?>
         <form method="post">
             <div id="editor">
                 <div>
@@ -122,10 +129,7 @@ echo prefix($css, array('compress' => true, 'optimize' => true));
                 </div>
                 <div>
                     <label for="result">Prefixed CSS</label>
-                    <textarea id="result" name="result"><?php
-$process_data = do_optimization();
-echo isset($process_data['css']) ? $process_data['css'] : '';
-?></textarea>
+                    <textarea id="result" name="result"><?php echo isset($process_data['css']) ? $process_data['css'] : ''; ?></textarea>
                 </div>
             </div>
             <div id="extra">
@@ -162,8 +166,8 @@ echo isset($process_data['css']) ? $process_data['css'] : '';
                     <div>
                         <h3>Statistics</h3>
                         <ul>
-                            <li>Original size: <?php echo ReadableSize(strlen($process_data['source'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['source']))) ?> gzipped)</li>
-                            <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['css']))) ?> gzipped)</li>
+                            <li>Original size: <?php echo ReadableSize(strlen($process_data['source'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['source'], 9)), false, 3) ?> gzipped)</li>
+                            <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['css'], 9)), false, 9) ?> gzipped)</li>
                             <li>Difference: <strong><?php printf('%s (%+g%%)', ReadableSize(strlen($process_data['css']) - strlen($process_data['source']), true), round(strlen($process_data['css']) / strlen($process_data['source']), 2) * 100) ?></strong></li>
                         </ul>
                         <ul>
@@ -195,9 +199,6 @@ echo isset($process_data['css']) ? $process_data['css'] : '';
             settings['readOnly']=true;
             CodeMirror.fromTextArea(document.getElementById("result"),settings );
         </script>
-        <?php
-        var_dump(CssMin::parse($css));
-        ?>
     </body>
 </html>
 <?php
@@ -259,15 +260,15 @@ function ReadableTime($time) {
     }
 }
 
-function ReadableSize($bytes, $sign = false) {
+function ReadableSize($bytes, $sign = false, $precission = 2) {
     if ($bytes > 1000000000) {
-        $count = round($bytes / 1000000000, 2);
+        $count = round($bytes / 1000000000, $precission);
         $unit = 'GB';
     } elseif ($bytes > 1000000) {
-        $count = round($bytes / 1000000, 2);
+        $count = round($bytes / 1000000, $precission);
         $unit = 'MB';
     } elseif ($bytes > 1000) {
-        $count = round($bytes / 1000, 2);
+        $count = round($bytes / 1000, $precission);
         $unit = 'KB';
     } else {
         $count = $bytes;

@@ -1750,7 +1750,7 @@ class CssOtbsFormatter extends aCssFormatter {
             } elseif ($class === "CssAtImportToken") {
                 $r[] = $indent . "@import " . $token->Import . " " . implode(", ", $token->MediaTypes) . ";";
             } elseif ($class === "CssAtKeyframesStartToken") {
-                $r[] = $indent . "@keyframes \"" . $token->Name . "\" {";
+                $r[] = $indent .$token;//; "@keyframes \"" . $token->Name . "\" {";
                 $level++;
             } elseif ($class === "CssAtMediaStartToken") {
                 $r[] = $indent . "@media " . implode(", ", $token->MediaTypes) . " {";
@@ -1926,7 +1926,7 @@ class CssMinifier {
      * 
      * @return array
      */
-    public function getMinifiedTokens() {
+    public function &getMinifiedTokens() {
         return $this->minified_tokens;
     }
 

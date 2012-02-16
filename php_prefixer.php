@@ -82,11 +82,18 @@ class php_prefixer {
             //Custom filters
             "AddVendorPrefix" => $this->_settings['prefix'],
             "CustomConvertLevel3Properties" => $this->_settings['prefix'],
-            "OptimizeCompressionRatio" => $this->_settings['extra_optimize']
+            "SortRulesetProperties" => $this->_settings['extra_optimize'],
+        //   "OptimizeSelectorsCompressionRatio" => $this->_settings['extra_optimize'],
+       //   "OptimizeRulesCompressionRatio" => $this->_settings['extra_optimize'],
         );
 
 
         $minifier = new CssMinifier($css, $filters, $plugins);
+        
+        if( $this->_settings['extra_optimize']) {
+            $filter=new CssOptimizeRulesCompressionRatioMinifierFilter($minifier);
+            $filter->apply($minifier->getMinifiedTokens());
+        }
 
         if (!$this->_settings['compress']) {//Format result
             $formatter = new CssOtbsFormatter($minifier->getMinifiedTokens(), "\t", 25);
@@ -130,7 +137,7 @@ class CssCustomCompressColorValuesMinifierPlugin extends CssCompressColorValuesM
      */
     public function apply(aCssToken &$token) {
         if (strpos($token->Value, "#") !== false) {
-            
+
             //Ignore IE filters colors, they needs full hex colors
             if ($token instanceof aCssDeclarationToken && strpos($token->Property, "filter") !== false)
                 return false;
@@ -314,9 +321,9 @@ class CssAddVendorPrefixMinifierFilter extends aCssMinifierFilter {
 }
 
 /**
- * Sort all the properties and rules in order to improve the compression ratio
+ * Sort all the rules in order to improve the compression ratio
  */
-class CssOptimizeCompressionRatioMinifierFilter extends aCssMinifierFilter {
+class CssOptimizeRulesCompressionRatioMinifierFilter extends aCssMinifierFilter {
 
     /**
      * Implements {@link aCssMinifierFilter::filter()}.
@@ -327,60 +334,6 @@ class CssOptimizeCompressionRatioMinifierFilter extends aCssMinifierFilter {
     public function apply(array &$tokens) {
         $r = 0;
         //Step 1: Sort rules
-        for ($i = 0, $l = count($tokens); $i < $l; $i++) {
-            // Only look for ruleset start rules
-            if (get_class($tokens[$i]) !== "CssRulesetStartToken") {
-                continue;
-            }
-            // Look for the corresponding ruleset end
-            $endIndex = false;
-            for ($ii = $i + 1; $ii < $l; $ii++) {
-                if (get_class($tokens[$ii]) !== "CssRulesetEndToken") {
-                    continue;
-                }
-                $endIndex = $ii;
-                break;
-            }
-            if (!$endIndex) {
-                break;
-            }
-            $startIndex = $i;
-            $i = $endIndex;
-            // Skip if there's only one token in this ruleset
-            if ($endIndex - $startIndex <= 2) {
-                continue;
-            }
-            // Ensure that everything between the start and end is a declaration token, for safety
-            for ($ii = $startIndex + 1; $ii < $endIndex; $ii++) {
-                if (get_class($tokens[$ii]) !== "CssRulesetDeclarationToken") {
-                    continue(2);
-                }
-            }
-            $declarations = array_slice($tokens, $startIndex + 1, $endIndex - $startIndex - 1);
-
-            // Look for the best compression, looking in ALL possible permutations
-            $this->_best_order = $this->_min_size = null;
-            $this->_max_size = null;
-            $this->permutations($declarations, array($this, '_check_permutation'), 1000);
-            // echo "SAVING: <b>".($this->_max_size-$this->_min_size)."</b> MIN: $this->_min_size MAX: $this->_max_size ORIGINAL: ".implode('',$declarations)." NEW: ".implode('',$this->_best_order)."<br/>";
-
-            if (isset($this->_best_order))
-                $declarations = $this->_best_order;
-
-            // Update "IsLast" property
-            for ($ii = 0, $ll = count($declarations) - 1; $ii <= $ll; $ii++) {
-                if ($ii == $ll) {
-                    $declarations[$ii]->IsLast = true;
-                } else {
-                    $declarations[$ii]->IsLast = false;
-                }
-            }
-            // Splice back into the array.
-            array_splice($tokens, $startIndex + 1, $endIndex - $startIndex - 1, $declarations);
-            $r += $endIndex - $startIndex - 1;
-        }
-
-        //Step 2: sort rulesets
         for ($i = 0, $l = count($tokens); $i < $l; $i++) {
             // Only look for ruleset start rules
             if (get_class($tokens[$i]) !== "CssRulesetStartToken") {
@@ -500,6 +453,83 @@ class CssOptimizeCompressionRatioMinifierFilter extends aCssMinifierFilter {
         if (!isset($this->_max_size) || strlen($compressed_css) > $this->_max_size) {
             $this->_max_size = strlen($compressed_css);
         }
+    }
+
+}
+
+/**
+ * Sort all the selectors in order to improve the compression ratio
+ */
+class CssOptimizeSelectorsCompressionRatioMinifierFilter extends aCssMinifierFilter {
+
+    /**
+     * Implements {@link aCssMinifierFilter::filter()}.
+     * 
+     * @param array $tokens Array of objects of type aCssToken
+     * @return integer Count of added, changed or removed tokens; a return value larger than 0 will rebuild the array
+     */
+    public function apply(array &$tokens) {
+        $r = 0;
+        
+        //Step 1: Split rules
+        $chunks = array();
+        $chunk = array();
+        foreach ($tokens as $token) {
+            $class = get_class($token);
+            $chunk[] = $token;
+           if ($class === "CssRulesetEndToken") {
+                //Start new chunk
+                $chunks[] = $chunk;
+                $chunk = array();
+            } 
+        }
+        $chunks[] = $chunk;
+
+        foreach ($chunks as $i => $chunk) {
+         // echo '<h4>' . $i . '</h4>' . implode('', $chunk);
+        }
+
+        //Step 2: Reorder rules, looking for the best compression
+        $best_seed = $seed = false;
+        $min_size = null;
+        for ($i = 0; $i < 1500; $i++) {
+            //Shuffle array
+            if ($i > 0) {
+                $seed = mt_rand();
+                srand($seed);
+                shuffle($chunks);
+            }
+
+            //Generate css
+            $css = array();
+            foreach ($chunks as $chunk) {
+                foreach ($chunk as $token) {
+                    $css[] = $token;
+                }
+            }
+            $css = implode('', $css);
+
+            //Test compression
+            $compressed_css = gzdeflate($css);
+            if (!isset($min_size) || strlen($compressed_css) < $min_size) {
+                $best_seed = $seed;
+                $min_size = strlen($compressed_css);
+            }
+        }
+
+        //Step 3: Shuffle array with the best seed and rebuild original
+        if ($best_seed !== false) {
+            srand($best_seed);
+            shuffle($chunks);
+            $tokens = array();
+            foreach ($chunks as $chunk) {
+                foreach ($chunk as $token) {
+                    $tokens[] = $token;
+                }
+            }
+        }
+
+        return 1;
     }
 
 }
