@@ -166,8 +166,8 @@ echo prefix($css, array('compress' => true, 'optimize' => true));
                     <div>
                         <h3>Statistics</h3>
                         <ul>
-                            <li>Original size: <?php echo ReadableSize(strlen($process_data['source'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['source'], 9)), false, 3) ?> gzipped)</li>
-                            <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo ReadableSize(strlen(gzencode($process_data['css'], 9)), false, 9) ?> gzipped)</li>
+                            <li>Original size: <?php echo ReadableSize(strlen($process_data['source'])) ?> (<?php echo strlen(gzencode($process_data['source'], 9)) ?> bytes gzipped)</li>
+                            <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo strlen(gzencode($process_data['css'], 9)) ?> bytes gzipped)</li>
                             <li>Difference: <strong><?php printf('%s (%+g%%)', ReadableSize(strlen($process_data['css']) - strlen($process_data['source']), true), round(strlen($process_data['css']) / strlen($process_data['source']), 2) * 100) ?></strong></li>
                         </ul>
                         <ul>

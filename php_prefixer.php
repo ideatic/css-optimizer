@@ -79,20 +79,20 @@ class php_prefixer {
             "ConvertLevel3Properties" => false,
             "Variables" => false,
             "RemoveLastDelarationSemiColon" => $this->_settings['optimize'],
+            "SortRulesetProperties" => $this->_settings['extra_optimize'],
             //Custom filters
             "AddVendorPrefix" => $this->_settings['prefix'],
             "CustomConvertLevel3Properties" => $this->_settings['prefix'],
-            "SortRulesetProperties" => $this->_settings['extra_optimize'],
-        //   "OptimizeSelectorsCompressionRatio" => $this->_settings['extra_optimize'],
-       //   "OptimizeRulesCompressionRatio" => $this->_settings['extra_optimize'],
+                //   "OptimizeSelectorsCompressionRatio" => $this->_settings['extra_optimize'],
+                //  "OptimizeRulesCompressionRatio" => $this->_settings['extra_optimize'],
         );
 
 
         $minifier = new CssMinifier($css, $filters, $plugins);
-        
-        if( $this->_settings['extra_optimize']) {
-            $filter=new CssOptimizeRulesCompressionRatioMinifierFilter($minifier);
-            $filter->apply($minifier->getMinifiedTokens());
+
+        if ($this->_settings['extra_optimize']) {
+            // $filter=new CssOptimizeRulesCompressionRatioMinifierFilter($minifier);
+            //   $filter->apply($minifier->getMinifiedTokens());
         }
 
         if (!$this->_settings['compress']) {//Format result
@@ -470,23 +470,23 @@ class CssOptimizeSelectorsCompressionRatioMinifierFilter extends aCssMinifierFil
      */
     public function apply(array &$tokens) {
         $r = 0;
-        
+
         //Step 1: Split rules
         $chunks = array();
         $chunk = array();
         foreach ($tokens as $token) {
             $class = get_class($token);
             $chunk[] = $token;
-           if ($class === "CssRulesetEndToken") {
+            if ($class === "CssRulesetEndToken") {
                 //Start new chunk
                 $chunks[] = $chunk;
                 $chunk = array();
-            } 
+            }
         }
         $chunks[] = $chunk;
 
         foreach ($chunks as $i => $chunk) {
-         // echo '<h4>' . $i . '</h4>' . implode('', $chunk);
+            // echo '<h4>' . $i . '</h4>' . implode('', $chunk);
         }
 
         //Step 2: Reorder rules, looking for the best compression
