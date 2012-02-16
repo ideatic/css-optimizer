@@ -1847,6 +1847,7 @@ class CssMinifier {
      * @var string
      */
     private $minified = "";
+    private $minified_tokens;
 
     /**
      * Constructer.
@@ -1918,6 +1919,15 @@ class CssMinifier {
      */
     public function getMinified() {
         return $this->minified;
+    }
+
+    /**
+     * Returns the minified Source tokens.
+     * 
+     * @return array
+     */
+    public function getMinifiedTokens() {
+        return $this->minified_tokens;
     }
 
     /**
@@ -1999,6 +2009,7 @@ class CssMinifier {
             $r .= (string) $tokens[$i];
         }
         $this->minified = $r;
+        $this->minified_tokens = $tokens;
         return $r;
     }
 
@@ -2815,7 +2826,7 @@ class CssConvertLevel3PropertiesMinifierFilter extends aCssMinifierFilter {
      * 
      * @var array
      */
-    private $transformations = array
+    protected $transformations = array
         (
         // Property						Array(Mozilla, Webkit, Opera, Internet Explorer); NULL values are placeholders and will get ignored
         "animation" => array(null, "-webkit-animation", null, null),
@@ -4795,5 +4806,3 @@ class CssAtCharsetParserPlugin extends aCssParserPlugin {
     }
 
 }
-
-?>
