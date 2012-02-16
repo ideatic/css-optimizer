@@ -256,11 +256,20 @@ class CssAddVendorPrefixMinifierFilter extends aCssMinifierFilter {
                     //Add w3c gradient formats
                     foreach ($prefixes as $prefix) {
                         $new_value = str_replace($match[2], $prefix . $match[2], $value);
+
+                        //Check if repeated
+                        $siblings = $this->sibling_rules($tokens, $i);
+                        foreach ($siblings as $sibling) {
+                            if (get_class($sibling) === "CssRulesetDeclarationToken" && $sibling->Property == $tokens[$i]->Property && $sibling->Value == $new_value) {
+                                continue 2;
+                            }
+                        }
+                        $tokens[$i]->IsLast = false;
                         $result[] = new CssRulesetDeclarationToken($tokens[$i]->Property, $new_value, $tokens[$i]->MediaTypes);
                     }
 
                     //Add old webkit format
-                    $color_stops_regex = '(?<color>(rgb|hsl)a?\s*\([^\)]+\)|#[\da-f]+|\w+)\s+(?<unit>\d+(%|em|px|in|cm|mm|ex|em|pt|pc))';
+                    $color_stops_regex = '(?<color>(rgb|hsl)a?\s*\([^\)]+\)|#[\da-f]+|\w+)\s+(?<unit>\d+(%|em|px|in|cm|mm|ex|em|pt|pc)?)';
                     if ($this->configuration['webkit']) {
                         //Examples
                         //
@@ -312,6 +321,30 @@ class CssAddVendorPrefixMinifierFilter extends aCssMinifierFilter {
                 }
             }
         }
+    }
+
+    private function sibling_rules(&$tokens, $pos) {
+        //Search selector begin
+        $start = $pos;
+        for ($i = $pos; $i >= 0; $i--) {
+            if (get_class($tokens[$i]) !== "CssRulesetStartToken") {
+                continue;
+            }
+            $start = $i;
+            break;
+        }
+
+        //Search end
+        $end = $pos;
+        for ($i = $pos, $l = count($tokens); $i < $l; $i++) {
+            if (get_class($tokens[$i]) !== "CssRulesetEndToken") {
+                continue;
+            }
+            $end = $i;
+            break;
+        }
+
+        return array_slice($tokens, $start + 1, $end - $start - 1);
     }
 
     private function ie_color($color) {
