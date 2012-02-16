@@ -89,6 +89,7 @@ textarea:hover, .CodeMirror:hover,textarea:focus, .CodeMirror-focused{
 #extra > div {
     float:left;
     min-width: 250px;
+    _width: 300px;
     margin:0 10px;
 }
 
@@ -113,7 +114,7 @@ textarea:hover, .CodeMirror:hover,textarea:focus, .CodeMirror-focused{
 }
 
 CSS;
-echo prefix($css, array('compress' => true, 'optimize' => true));
+echo optimize($css, array('compress' => true, 'optimize' => true));
 //echo $css;
 ?>
         </style>
@@ -143,6 +144,9 @@ echo prefix($css, array('compress' => true, 'optimize' => true));
                     </div>
                     <div>
                         <input type="checkbox" id="extra_optimize" name="extra_optimize" <?php echo $process_data['settings']['extra_optimize'] ? 'checked' : ''; ?> /><label for="extra_optimize" title="Apply some extra optimizations, like reorder selectors and rules in order to improve gzip compression ratio">Extra optimizations (may be unsafe)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="remove_ie_hacks" name="remove_ie_hacks" <?php echo $process_data['settings']['remove_ie_hacks'] ? 'checked' : ''; ?> /><label for="remove_ie_hacks" title="Remove IE Hacks like _name, expressions and filters">Remove IE Hacks</label>
                     </div>
                 </div>  
                 <div>
@@ -215,6 +219,7 @@ function do_optimization() {
             'compress' => isset($_POST['compress']),
             'optimize' => isset($_POST['optimize']),
             'extra_optimize' => isset($_POST['extra_optimize']),
+            'remove_ie_hacks' => isset($_POST['remove_ie_hacks']),
             'prefix' => array(),
         );
         foreach (array('webkit', 'mozilla', 'opera', 'microsoft') as $type) {
@@ -229,19 +234,19 @@ function do_optimization() {
     $data['source'] = $_POST['source'];
 
     $start = microtime(true);
-    $data['css'] = prefix($_POST['source'], $data['settings'], $data['errors']);
+    $data['css'] = optimize($_POST['source'], $data['settings'], $data['errors']);
     $data['execution_time'] = microtime(true) - $start;
 
     return $data;
 }
 
-function prefix($css, $settings, &$errors = null) {
+function optimize($css, $settings, &$errors = null) {
     require_once 'css_optimizer.php';
-    $prefixer = new css_optimizer($settings);
+    $optimizer = new css_optimizer($settings);
 
-    $result = $prefixer->process($css);
+    $result = $optimizer->process($css);
 
-    $errors = $prefixer->errors();
+    $errors = $optimizer->errors();
 
     return $result;
 }

@@ -40,6 +40,8 @@ class css_optimizer {
     protected $_errors;
 
     public function __construct($settings = array()) {
+        if (isset($settings['prefix']) && $settings['prefix'] == 'all')
+            unset($settings['prefix']); //Use default settings (add all prefix)
         $this->_settings = array_merge(self::default_settings(), $settings);
     }
 
@@ -48,6 +50,7 @@ class css_optimizer {
             'compress' => true,
             'optimize' => true,
             'extra_optimize' => false,
+            'remove_ie_hacks' => false,
             'prefix' => array(
                 'webkit' => true,
                 'mozilla' => true,
@@ -59,32 +62,33 @@ class css_optimizer {
 
     public function process($css) {
         $plugins = array(
-            "Variables" => false,
-            "ConvertFontWeight" => $this->_settings['optimize'],
-            "ConvertHslColors" => $this->_settings['optimize'],
-            "ConvertRgbColors" => $this->_settings['optimize'],
-            "ConvertNamedColors" => $this->_settings['optimize'],
-            "CompressUnitValues" => $this->_settings['optimize'],
-            "CompressExpressionValues" => false,
+            'Variables' => false,
+            'ConvertFontWeight' => $this->_settings['optimize'],
+            'ConvertHslColors' => $this->_settings['optimize'],
+            'ConvertRgbColors' => $this->_settings['optimize'],
+            'ConvertNamedColors' => $this->_settings['optimize'],
+            'CompressUnitValues' => $this->_settings['optimize'],
+            'CompressExpressionValues' => false,
             //Custom
-            "CustomCompressColorValues" => $this->_settings['optimize'],
+            'CustomCompressColorValues' => $this->_settings['optimize'],
         );
 
         $filters = array(
-            "ImportImports" => false,
-            "RemoveComments" => $this->_settings['optimize'],
-            "RemoveEmptyRulesets" => $this->_settings['optimize'],
-            "RemoveEmptyAtBlocks" => $this->_settings['optimize'],
-            "ConvertLevel3AtKeyframes" => $this->_settings['optimize'],
-            "ConvertLevel3Properties" => false,
-            "Variables" => false,
-            "RemoveLastDelarationSemiColon" => $this->_settings['optimize'],
-            "SortRulesetProperties" => $this->_settings['extra_optimize'],
+            'ImportImports' => false,
+            'RemoveComments' => $this->_settings['optimize'],
+            'RemoveEmptyRulesets' => $this->_settings['optimize'],
+            'RemoveEmptyAtBlocks' => $this->_settings['optimize'],
+            'ConvertLevel3AtKeyframes' => $this->_settings['optimize'],
+            'ConvertLevel3Properties' => false,
+            'Variables' => false,
+            'RemoveLastDelarationSemiColon' => $this->_settings['optimize'],
+            'SortRulesetProperties' => $this->_settings['extra_optimize'],
             //Custom filters
-            "AddVendorPrefix" => $this->_settings['prefix'],
-            "CustomConvertLevel3Properties" => $this->_settings['prefix'],
-                //   "OptimizeSelectorsCompressionRatio" => $this->_settings['extra_optimize'],
-                //  "OptimizeRulesCompressionRatio" => $this->_settings['extra_optimize'],
+            'AddVendorPrefix' => $this->_settings['prefix'],
+            'CustomConvertLevel3Properties' => $this->_settings['prefix'],
+            'RemoveIEHacks' => $this->_settings['remove_ie_hacks'],
+                //   'OptimizeSelectorsCompressionRatio' => $this->_settings['extra_optimize'],
+                //  'OptimizeRulesCompressionRatio' => $this->_settings['extra_optimize'],
         );
 
 
@@ -316,6 +320,30 @@ class CssAddVendorPrefixMinifierFilter extends aCssMinifierFilter {
             return "#$color[1]$color[1]$color[2]$color[2]$color[3]$color[3]";
         }
         return $color;
+    }
+
+}
+
+class CssRemoveIEHacksMinifierFilter extends aCssMinifierFilter {
+
+    public function apply(array &$tokens) {
+        $changes = 0;
+        for ($i = 0, $l = count($tokens); $i < $l; $i++) {
+            $token = &$tokens[$i];
+            if ($token instanceof aCssDeclarationToken) {
+                if (strcasecmp($token->Property, "filter") === 0 || strcasecmp($token->Property, "-ms-filter") === 0) {//Filter
+                    $token = null;
+                    $changes++;
+                } else if ($token->Property[0] == '_' || $token->Property[0] == '*') {//Hack (_width, *background)
+                    $token = null;
+                    $changes++;
+                } else if (stripos($token->Value, 'expression') === 0) {//CSS Expression
+                    $token = null;
+                    $changes++;
+                }
+            }
+        }
+        return $changes;
     }
 
 }
