@@ -1,7 +1,7 @@
 <?php
 
 /**
- * php_prefixer - Add vendor prefixes in your CSS files for cross browser compatibility
+ * css_optimizer - Add vendor prefixes in your CSS files for cross browser compatibility
  * 
  * --
  * Copyright (c) Javier Marín
@@ -25,8 +25,8 @@
  * THE SOFTWARE.
  * --
  * 
- * @package		php_prefixer
- * @link		https://github.com/javiermarinros/php_prefixer
+ * @package		css_optimizer
+ * @link		https://github.com/javiermarinros/css_optimizer
  * @version		1
  * @author		Javier Marín <https://github.com/javiermarinros>
  * @copyright           Javier Marín <https://github.com/javiermarinros>
@@ -34,7 +34,7 @@
  */
 require 'cssmin.php';
 
-class php_prefixer {
+class css_optimizer {
 
     protected $_settings;
     protected $_errors;

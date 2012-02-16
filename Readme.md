@@ -1,4 +1,4 @@
-# php_prefixer v0.1
-#### <https://github.com/javiermarinros/php_prefixer>
+# css_optimizer v0.1
+#### <https://github.com/javiermarinros/css_optimizer>
 
-`php_prefixer` is a small tool for add vendor prefixes in your CSS files for cross browser compatibility. This tool is used in the project [Tinyfier](https://github.com/javiermarinros/Tinyfier).
+`css_optimizer` is a small tool for add vendor prefixes in your CSS files for cross browser compatibility. This tool is used in the project [Tinyfier](https://github.com/javiermarinros/Tinyfier).

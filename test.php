@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>php_prefixer test</title>
+        <title>css_optimizer test</title>
         <link rel="stylesheet" href="CodeMirror/codemirror.css">
         <script src="CodeMirror/codemirror.js"></script>
         <style>
@@ -119,7 +119,7 @@ echo prefix($css, array('compress' => true, 'optimize' => true));
         </style>
     </head>
     <body>
-        <h1><a href="">php_prefixer</a></h1>
+        <h1><a href="">css_optimizer</a></h1>
         <?php $process_data = do_optimization(); ?>
         <form method="post">
             <div id="editor">
@@ -208,7 +208,7 @@ function do_optimization() {
 
     if (empty($_POST)) {
         //Default settings
-        $data['settings'] = php_prefixer::default_settings();
+        $data['settings'] = css_optimizer::default_settings();
     } else {
         //User settings
         $data['settings'] = array(
@@ -236,8 +236,8 @@ function do_optimization() {
 }
 
 function prefix($css, $settings, &$errors = null) {
-    require_once 'php_prefixer.php';
-    $prefixer = new php_prefixer($settings);
+    require_once 'css_optimizer.php';
+    $prefixer = new css_optimizer($settings);
 
     $result = $prefixer->process($css);
 
