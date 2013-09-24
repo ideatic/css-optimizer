@@ -47,8 +47,8 @@ class css_parser {
                             $current_group->add_child($import);
                             $partial = '';
                         } else {//Out-of-property semicolon
-                            if(strlen(trim($partial))>0)
-                            $partial.=$char;
+                            if (strlen(trim($partial)) > 0)
+                                $partial.=$char;
                         }
                     }
 
@@ -157,15 +157,19 @@ class css_element {
                 unset($this->parent->children[$key]);
             }
         }
+        $this->parent = NULL;
     }
 
     /**
      * @return css_element[]
      */
-    public function siblings($type = NULL) {
+    public function siblings($type = NULL, $include_self = FALSE) {
+        if (!isset($this->parent)) {
+            return array();
+        }
         $siblings = array();
         foreach ($this->parent->children as $sibling) {
-            if ($sibling !== $this) {
+            if ($include_self || $sibling !== $this) {
                 if (isset($type) ? $sibling instanceof $type : TRUE) {
                     $siblings[] = $sibling;
                 }
@@ -175,6 +179,9 @@ class css_element {
     }
 
     public function insert_after($element) {
+        if (!isset($this->parent)) {
+            throw new RuntimeException('The current element has been removed');
+        }
         $pos = 0;
         foreach ($this->parent->children as $child) {
             $pos++;
