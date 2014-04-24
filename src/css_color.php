@@ -6,72 +6,83 @@
 class css_color {
 
     public $valid = FALSE;
-    public $r, $g, $b, $a=1;
+    public $r, $g, $b, $a = 1;
 
     public function __construct($color) {
         $this->parse($color);
     }
 
     /**
-     * Analiza el color indicado
+     * Parse the specified color. Valid formats: rgb, rgba, hex, hsl, blue/white/...
      * @param string $color
      * @return boolean
      */
     public function parse($color) {
-        $this->r = $this->g = $this->b = 0;
-        $this->a = 1;
+        $this->valid = FALSE;
+        if (is_array($color)) {
+            if (count($color) == 3 || count($color) == 4) {
+                $this->r = $color[0];
+                $this->g = $color[1];
+                $this->b = $color[2];
+                $this->a = isset($color[3]) ? $color[3] : 1;
+            }
+        } else {
+            $this->r = $this->g = $this->b = 0;
+            $this->a = 1;
 
-        //Limpiar color de entrada
-        if ($color[0] == '#') {
-            $color = substr($color, 1);
-        }
-        $color = strtolower(str_replace(' ', '', $color));
+            //Clean input
+            if ($color[0] == '#') {
+                $color = substr($color, 1);
+            }
+            $color = strtolower(str_replace(' ', '', $color));
 
-        //Comprobar si es un color predefinido
-        $names = self::color_names();
-        if (isset($names[$color])) {
-            $color = $names[$color];
-        }
+            //Check if is a color name
+            $names = self::color_names();
+            if (isset($names[$color])) {
+                $color = $names[$color];
+            }
 
-        //Definir formatos
-        $formats = array(
-            array(
-                //'rgb(123, 234, 45)', 'rgb(255,234,245)', 'rgba(255,234,245,0.5)'
-                'regex' => '/^rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+(?:\.\d+)?))?\s*\)$/i',
-                'callback' => '_parse_rgba'
-            ),
-            array(
-                //'#00ff00', '336699'
-                'regex' => '/^(\w{2})(\w{2})(\w{2})$/',
-                'callback' => '_parse_hex'
-            ),
-            array(
-                //'#fb0', 'f0f'
-                'regex' => '/^(\w{1})(\w{1})(\w{1})$/',
-                'callback' => '_parse_hex_short'
-            ),
-            array(
-                'regex' => '/^hsl\s*\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)$/i',
-                'callback' => '_parse_hsl'
-            )
-        );
+            //Define formats
+            $formats = array(
+                array(
+                    //'rgb(123, 234, 45)', 'rgb(255,234,245)', 'rgba(255,234,245,0.5)'
+                    'regex' => '/^rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+(?:\.\d+)?))?\s*\)$/i',
+                    'callback' => '_parse_rgba'
+                ),
+                array(
+                    //'#00ff00', '336699'
+                    'regex' => '/^(\w{2})(\w{2})(\w{2})$/',
+                    'callback' => '_parse_hex'
+                ),
+                array(
+                    //'#fb0', 'f0f'
+                    'regex' => '/^(\w{1})(\w{1})(\w{1})$/',
+                    'callback' => '_parse_hex_short'
+                ),
+                array(
+                    'regex' => '/^hsl\s*\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)$/i',
+                    'callback' => '_parse_hsl'
+                )
+            );
 
-        //Buscar el formato coincidente
-        foreach ($formats as $format) {
-            if (preg_match($format['regex'], $color, $match)) {
-                $callback = $format['callback'];
-                $this->$callback($match);
+            //Find the current format
+            $this->valid = FALSE;
+            foreach ($formats as $format) {
+                if (preg_match($format['regex'], $color, $match)) {
+                    $callback = $format['callback'];
+                    $this->$callback($match);
 
-                //Validar y limpiar valores
-                foreach (array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 1) as $prop => $max) {
-                    $this->$prop = $this->$prop < 0 || is_nan($this->$prop) ? 0 : min($this->$prop, $max);
+                    //Clean color values
+                    foreach (array('r' => 255, 'g' => 255, 'b' => 255, 'a' => 1) as $prop => $max) {
+                        $v = $this->$prop;
+                        $this->$prop = $v < 0 || is_nan($v) ? 0 : min($v, $max);
+                    }
+
+                    $this->valid = TRUE;
+                    break;
                 }
-
-                $this->valid = TRUE;
-                return $this->valid;
             }
         }
-        $this->valid = FALSE;
         return $this->valid;
     }
 
@@ -143,7 +154,7 @@ class css_color {
     }
 
     /**
-     * Obtiene la representación en formato rgb/rgba del color representado
+     * Get the color in CSS rgb/rgba format
      * @return string
      */
     public function to_rgb($alpha = TRUE) {
@@ -155,7 +166,7 @@ class css_color {
     }
 
     /**
-     * Obtiene la representación hexadecimal del color representado
+     * Get the color in HEX format
      * @return string
      */
     public function to_hex($allow_short = TRUE) {
@@ -171,6 +182,31 @@ class css_color {
         return $hex;
     }
 
+    /**
+     * Get the color in a RGB/RGBA array
+     * @return array
+     */
+    public function to_array($alpha = TRUE) {
+        if ($alpha && $this->a != 1) {
+            return array($this->r, $this->g, $this->b, $this->a);
+        } else {
+            return array($this->r, $this->g, $this->b);
+        }
+    }
+
+    /**
+     * Parse the input color
+     * @param string $color
+     * @return self
+     */
+    public static function create($color) {
+        return new self($color);
+    }
+
+    /**
+     * List of common color names used in HTML and CSS
+     * @return array
+     */
     public static function color_names() {
         return array(
             'aliceblue' => 'f0f8ff',

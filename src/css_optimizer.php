@@ -2,35 +2,9 @@
 
 /**
  * css_optimizer - Optimize, compress and add vendor prefixes in your CSS files for cross browser compatibility
- *
- * --
- * Copyright (c) Javier Marín
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- * --
- *
- * @package         css_optimizer
- * @link            https://github.com/javiermarinros/css_optimizer
- * @version         2
- * @author          Javier Marín <https://github.com/javiermarinros>
- * @copyright       Javier Marín <https://github.com/javiermarinros>
- * @license         http://opensource.org/licenses/mit-license.php MIT License
+ * 
+ * [MIT Licensed](http://www.opensource.org/licenses/mit-license.php)
+ * @author Javier Marín
  */
 class css_optimizer {
 
@@ -82,8 +56,6 @@ class css_optimizer {
 
     public function process($css) {
         //Parse CSS
-        require_once 'css_parser.php';
-
         $parser = new css_parser();
 
         $css_doc = $parser->parse($css);
@@ -119,8 +91,6 @@ class css_optimizer {
 
         //Add vendor prefixes
         if ($this->prefixes) {
-            require_once 'css_prefixer.php';
-
             $prefixer = new css_prefixer;
             $options = explode(',', $this->prefixes);
             $prefixer->webkit = $this->prefixes == 'all' || in_array('webkit', $options);
@@ -135,7 +105,6 @@ class css_optimizer {
     }
 
     protected function _optimize(css_group $document) {
-        require_once 'css_color.php';
         $color_regex = '/(^|\b)(\#[0-9A-Fa-f]{3,6}|\w+\(.*?\)|' . implode('|', array_map('preg_quote', array_keys(css_color::color_names()))) . ')($|\b)/i';
 
         foreach ($document->find_all('css_property') as $property) {

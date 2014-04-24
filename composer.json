@@ -1,0 +1,16 @@
+{
+    "name": "ideatic/css_optimizer",
+    "description": "Optimize, minify and add vendor prefixes for your CSS",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Javier Marín",
+            "email": "contacto@ideatic.net"
+        }
+    ],
+    "autoload": {
+        "classmap": ["src/"]
+    },
+    "keywords": ["css"]
+}
