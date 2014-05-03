@@ -1,16 +1,16 @@
 /* Advanced CSS test */
 
 html, body {
-    height:100%;
-    opacity:1;
-    padding-top:0px;
-    padding-left:0px;
-    padding-right:0px;
-    padding-bottom:0px;
-    margin:0.5%;
+    height: 100%;
+    opacity: 1;
+    padding-top: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    padding-bottom: 0px;
+    margin: 0.5%;
     background: #d8ecf2;
     font-weight: bold;
-    background: linear-gradient(to right, rgba(230,240,163,1) 0%,rgba(210,230,56,1) 50%,rgba(195,216,37,1) 51%,rgba(219,240,67,1) 100%); /* W3C */
+    background: linear-gradient(to right, rgba(230, 240, 163, 1) 0%, rgba(210, 230, 56, 1) 50%, rgba(195, 216, 37, 1) 51%, rgba(219, 240, 67, 1) 100%); /* W3C */
 }
 
 q {
@@ -18,17 +18,17 @@ q {
 }
 
 .rgb {
-    background-color: hsl(0,100%, 50%);/* R */
-    background-color: hsl(120,100%, 50%);/* G */
-    background-color: hsl(240,100%, 50%);/* B */
-    color:palegreen;
+    background-color: hsl(0, 100%, 50%); /* R */
+    background-color: hsl(120, 100%, 50%); /* G */
+    background-color: hsl(240, 100%, 50%); /* B */
+    color: palegreen;
 }
 
 body {
-    background: radial-gradient(center 0, ellipse cover, #fbfcfe 0%,#d8ecf2 100%) no-repeat;
-    height:100%;
-    font-family: "Segoe UI",Arial,Verdana,"Trebuchet MS",Helvetica,Tahoma,"Verdana";
-    padding:20px;
+    background: radial-gradient(center 0, ellipse cover, #fbfcfe 0%, #d8ecf2 100%) no-repeat;
+    height: 100%;
+    font-family: "Segoe UI", Arial, Verdana, "Trebuchet MS", Helvetica, Tahoma, "Verdana";
+    padding: 20px;
     text-shadow: 0px 1px 0px #999, 0px 2px 0px #888, 0px 3px 0px #777, 0px 4px 0px #666, 0px 5px 0px #555, 0px 6px 0px #444, 0px 7px 0px #333, 0px 8px 7px #001135;
 }
 
@@ -45,11 +45,11 @@ body {
 }
 
 /* Same groups */
-p{
+p {
     font-weight: bold;
 }
 
-strong{
+strong {
     font-weight: bold;
 }
 
@@ -59,46 +59,72 @@ strong{
 
 /* Invalid syntax */
 body {
-    a {        
-        background: url("a/*asdf*/sdasdf");
-    }
-} }
 
+a {
+    background: url("a/*asdf*/sdasdf");
+}
+
+}
+}
 
 /* Empty group */
 a {
 
 }
 
-
 /* Keyframes */
 @-webkit-keyframes "slide" {
-    0% { left: 0; box-shadow: 10px 10px 10px black; }
-    100% { left: 50px; box-shadow: 5px 5px 5px black; }
+    0% {
+        left: 0;
+        box-shadow: 10px 10px 10px black;
+    }
+    100% {
+        left: 50px;
+        box-shadow: 5px 5px 5px black;
+    }
 }
 
-@keyframes orbit { 
-    0%   { transform:rotate(225deg); opacity: 1;
-           animation-timing-function: ease-out;
-    } 
+@keyframes orbit {
+    0% {
+        transform: rotate(225deg);
+        opacity: 1;
+        animation-timing-function: ease-out;
+    }
 
-    7%   { transform:rotate(345deg);
-           animation-timing-function: linear; }
+    7% {
+        transform: rotate(345deg);
+        animation-timing-function: linear;
+    }
 
-    30%   { transform:rotate(455deg);
-            animation-timing-function: ease-in-out; }
+    30% {
+        transform: rotate(455deg);
+        animation-timing-function: ease-in-out;
+    }
 
-    39%   { transform:rotate(690deg);
-            animation-timing-function: linear; }
+    39% {
+        transform: rotate(690deg);
+        animation-timing-function: linear;
+    }
 
-    70%   { transform:rotate(815deg); opacity: 1;
-            animation-timing-function: ease-out; }
+    70% {
+        transform: rotate(815deg);
+        opacity: 1;
+        animation-timing-function: ease-out;
+    }
 
-    75%   { transform:rotate(945deg); 
-            animation-timing-function: ease-out; }
+    75% {
+        transform: rotate(945deg);
+        animation-timing-function: ease-out;
+    }
 
-    76% { transform:rotate(945deg); opacity: 0; }
-    100% { transform:rotate(945deg); opacity: 0; } 
+    76% {
+        transform: rotate(945deg);
+        opacity: 0;
+    }
+    100% {
+        transform: rotate(945deg);
+        opacity: 0;
+    }
 }
 
 /* Media queries */
@@ -114,7 +140,7 @@ a {
 
 @media print {
     body {
-        background:white;
+        background: white;
     }
 }
 

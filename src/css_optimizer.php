@@ -2,51 +2,53 @@
 
 /**
  * css_optimizer - Optimize, compress and add vendor prefixes in your CSS files for cross browser compatibility
- * 
+ *
  * [MIT Licensed](http://www.opensource.org/licenses/mit-license.php)
  * @author Javier Marín
  */
-class css_optimizer {
+class css_optimizer
+{
 
     /**
      * Compress CSS code, removing unused whitespace and symbols
-     * @var boolean 
+     * @var boolean
      */
-    public $compress = TRUE;
+    public $compress = true;
 
     /**
      * Remove comments
-     * @var boolean 
+     * @var boolean
      */
-    public $remove_comments = TRUE;
+    public $remove_comments = true;
 
     /**
      * Optimize CSS colors, units, etc.
      * @var boolean
      */
-    public $optimize = TRUE;
+    public $optimize = true;
 
     /**
      * Merge selectors, (may be unsafe)
-     * @var type 
+     * @var type
      */
-    public $extra_optimize = FALSE;
+    public $extra_optimize = false;
 
     /**
      * Remove Internet Explorer hacks (filter, expressions, ...)
      * @var boolean
      */
-    public $remove_ie_hacks = FALSE;
+    public $remove_ie_hacks = false;
 
     /**
      * Remove empty groups and selectos
      * @var boolean
      */
-    public $remove_empty = TRUE;
+    public $remove_empty = true;
     public $prefixes = 'all';
     protected $_errors;
 
-    public function __construct($settings = NULL) {
+    public function __construct($settings = null)
+    {
         if (isset($settings)) {
             foreach ($settings as $prop => $value) {
                 $this->$prop = $value;
@@ -54,11 +56,22 @@ class css_optimizer {
         }
     }
 
-    public function process($css) {
+    /**
+     * Optimize an input CSS string or parsed css_group
+     *
+     * @param string|css_group $css
+     *
+     * @return string|css_group
+     */
+    public function process($css)
+    {
         //Parse CSS
-        $parser = new css_parser();
-
-        $css_doc = $parser->parse($css);
+        if ($css instanceof css_group) {
+            $css_doc = $css;
+        } else {
+            $parser = new css_parser();
+            $css_doc = $parser->parse($css);
+        }
 
         //Remove comments
         if ($this->remove_comments) {
@@ -101,10 +114,11 @@ class css_optimizer {
             $prefixer->add_prefixes($css_doc);
         }
 
-        return $css_doc->render($this->compress);
+        return $css instanceof css_group ? $css_doc : $css_doc->render($this->compress);
     }
 
-    protected function _optimize(css_group $document) {
+    protected function _optimize(css_group $document)
+    {
         $color_regex = '/(^|\b)(\#[0-9A-Fa-f]{3,6}|\w+\(.*?\)|' . implode('|', array_map('preg_quote', array_keys(css_color::color_names()))) . ')($|\b)/i';
 
         foreach ($document->find_all('css_property') as $property) {
@@ -126,15 +140,31 @@ class css_optimizer {
 
             //Optimize background position
             if (in_array($property->name, array('background-position'))) {
-                $property->value = str_replace(array(
-                    'top left', 'top center', 'top right',
-                    'center left', 'center center', 'center right',
-                    'bottom left', 'bottom center', 'bottom right'
-                        ), array(
-                    '0 0', '50% 0', '100% 0',
-                    '0 50%', '50% 50%', '100% 50%',
-                    '0 100%', '50% 100%', '100% 100%'
-                        ), $property->value);
+                $property->value = str_replace(
+                    array(
+                        'top left',
+                        'top center',
+                        'top right',
+                        'center left',
+                        'center center',
+                        'center right',
+                        'bottom left',
+                        'bottom center',
+                        'bottom right'
+                    ),
+                    array(
+                        '0 0',
+                        '50% 0',
+                        '100% 0',
+                        '0 50%',
+                        '50% 50%',
+                        '100% 50%',
+                        '0 100%',
+                        '50% 100%',
+                        '100% 100%'
+                    ),
+                    $property->value
+                );
 
                 $property->value = str_replace(array(' top', ' left', ' center', ' right', ' bottom'), array(' 0', ' 0', ' 50%', ' 100%', ' 100%'), $property->value);
             }
@@ -162,7 +192,8 @@ class css_optimizer {
         }
     }
 
-    private function _compress_color($color_match) {
+    private function _compress_color($color_match)
+    {
         $color = new css_color($color_match[0]);
         if ($color->valid && $color->a == 1) {
             $hex = $color->to_hex();
@@ -173,7 +204,8 @@ class css_optimizer {
         return $color_match[0];
     }
 
-    private function _shorthand(css_property $property) {
+    private function _shorthand(css_property $property)
+    {
         $shorthands = array(
             'background' => array(
                 'background-color',
@@ -230,13 +262,13 @@ class css_optimizer {
             if (in_array($property->name, $shorthand_properties)) {
                 //All properties must be defined in order to use the shorthand version
                 $properties = array();
-                $siblings = $property->siblings('css_property', TRUE);
+                $siblings = $property->siblings('css_property', true);
                 foreach ($shorthand_properties as $name) {
-                    $found = FALSE;
+                    $found = false;
                     foreach ($siblings as $sibling) {
                         if ($sibling->name == $name) {
                             $properties[] = $sibling;
-                            $found = TRUE;
+                            $found = true;
                             break;
                         }
                     }
@@ -264,12 +296,13 @@ class css_optimizer {
     /**
      * @see http://net.tutsplus.com/tutorials/html-css-techniques/quick-tip-how-to-target-ie6-ie7-and-ie8-uniquely-with-4-characters/
      */
-    protected function _remove_ie_hacks(css_group $document) {
+    protected function _remove_ie_hacks(css_group $document)
+    {
         foreach ($document->find_all('css_property') as $property) {
-            $is_hack = in_array($property->name, array('filter', '-ms-filter'))//Filter
-                    || in_array($property->name[0], array('*', '_'))//Hack (_width, *background)
-                    || stripos($property->value, 'expression') === 0 //CSS Expression
-                    || substr($property->value, -2) === '\9'; //IE8 Hack
+            $is_hack = in_array($property->name, array('filter', '-ms-filter')) //Filter
+                       || in_array($property->name[0], array('*', '_')) //Hack (_width, *background)
+                       || stripos($property->value, 'expression') === 0 //CSS Expression
+                       || substr($property->value, -2) === '\9'; //IE8 Hack
 
             if ($is_hack) {
                 $property->remove();
@@ -277,7 +310,8 @@ class css_optimizer {
         }
     }
 
-    protected function _extra_optimize($css_doc) {
+    protected function _extra_optimize($css_doc)
+    {
         //Merge selectors
         $dummy_selector = 'selector';
         foreach ($css_doc->find_all('css_group') as $group) {
@@ -291,7 +325,7 @@ class css_optimizer {
                 $sibling_content = $sibling_content->render();
 
                 if ($reference == $sibling_content) {
-                    $group->name.=',' . $sibling->name;
+                    $group->name .= ',' . $sibling->name;
                     $sibling->remove();
                 }
             }

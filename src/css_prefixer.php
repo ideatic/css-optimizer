@@ -1,20 +1,27 @@
 <?php
 
-class css_prefixer {
 
-    public $webkit = TRUE;
-    public $mozilla = TRUE;
-    public $opera = TRUE;
-    public $msie = TRUE;
+/**
+ * css_prefixer - Add vendor prefixes to css documents
+ *
+ * [MIT Licensed](http://www.opensource.org/licenses/mit-license.php)
+ * @author Javier Marín
+ */
+class css_prefixer
+{
 
-    public function add_prefixes($css_doc) {
+    public $webkit = true;
+    public $mozilla = true;
+    public $opera = true;
+    public $msie = true;
+
+    public function add_prefixes(css_group $css_doc)
+    {
         return $this->_add_prefixes($css_doc);
     }
 
-    /**
-     * @param $css_doc
-     */
-    protected function _add_prefixes(css_group $css_doc, $vendor_override = NULL, $ignore_keyframes = FALSE, $remove_original_property = FALSE) {
+    protected function _add_prefixes(css_group $css_doc, $vendor_override = null, $ignore_keyframes = false, $remove_original_property = false)
+    {
         $vendors_ids = array(
             1 => 'webkit',
             0 => 'mozilla',
@@ -26,7 +33,7 @@ class css_prefixer {
         foreach ($vendors_ids as $id => $prop) {
             $originals[$prop] = $this->$prop;
             if (isset($vendor_override)) {
-                $this->$prop = isset($vendor_override[$id]) ? $vendor_override[$id] : (isset($vendor_override[$prop]) ? $vendor_override[$prop] : FALSE);
+                $this->$prop = isset($vendor_override[$id]) ? $vendor_override[$id] : (isset($vendor_override[$prop]) ? $vendor_override[$prop] : false);
             }
             $apply_vendors[$id] = $this->$prop;
         }
@@ -34,7 +41,7 @@ class css_prefixer {
         foreach ($css_doc->find_all('css_property') as $property) {
             /* @var $property css_property */
             //Check if property is inside a @keyframes
-            $keyframe = NULL;
+            $keyframe = null;
             if (!$ignore_keyframes) {
                 foreach ($property->parents() as $parent) {
                     if ($parent instanceof css_group && stripos($parent->name, '@keyframes') === 0) {
@@ -46,14 +53,17 @@ class css_prefixer {
             if (isset($keyframe)) {
                 //Create vendor keyframes, each one with its own vendor prefixes
                 $this->_prefix_keyframe($keyframe, $apply_vendors);
-            } else if (array_key_exists($property->name, $this->_transformations)) {
-                $applied = $this->_apply_transformation($property, $vendors_ids);
-
-                if ($applied && $remove_original_property)
-                    $property->remove();
             } else {
-                //Replace vendor functions (gradients)
-                $this->_prefix_gradients($property, $vendors_ids);
+                if (array_key_exists($property->name, $this->_transformations)) {
+                    $applied = $this->_apply_transformation($property, $vendors_ids);
+
+                    if ($applied && $remove_original_property) {
+                        $property->remove();
+                    }
+                } else {
+                    //Replace vendor functions (gradients)
+                    $this->_prefix_gradients($property, $vendors_ids);
+                }
             }
         }
 
@@ -63,7 +73,8 @@ class css_prefixer {
         }
     }
 
-    private function _ie_filter_color($color) {
+    private function _ie_filter_color($color)
+    {
         $color = trim($color);
         if (preg_match('/#[0-9a-f]+/i', $color)) {
             if (strlen($color) == 4) {
@@ -78,32 +89,35 @@ class css_prefixer {
     /**
      * @param $property
      * @param $vendors_ids
+     *
      * @return boolean
      */
-    private function _apply_transformation($property, $vendors_ids) {
+    private function _apply_transformation($property, $vendors_ids)
+    {
         $transformation = $this->_transformations[$property->name];
-        $applied = FALSE;
+        $applied = false;
         if (is_callable($transformation)) {
             call_user_func($transformation, $property, $this);
         } else {
             foreach ($transformation as $vendor_id => $new_name) {
-                if ($new_name == NULL)
+                if ($new_name == null) {
                     continue;
+                }
 
                 $prop = $vendors_ids[$vendor_id];
                 if ($this->$prop) {
                     //Check if property is not already defined
-                    $already_defined = FALSE;
+                    $already_defined = false;
                     foreach ($property->siblings() as $sibling) {
                         if ($sibling->name == $new_name) {
-                            $already_defined = TRUE;
+                            $already_defined = true;
                         }
                     }
 
                     //Create vendor prefix
                     if (!$already_defined) {
                         $property->insert_after(new css_property($new_name, $property->value));
-                        $applied = TRUE;
+                        $applied = true;
                     }
                 }
             }
@@ -111,7 +125,8 @@ class css_prefixer {
         return $applied;
     }
 
-    private function _prefix_keyframe(css_group $keyframe, $apply_list) {
+    private function _prefix_keyframe(css_group $keyframe, $apply_list)
+    {
         $prefixes = array(
             3 => "@-ms-keyframes",
             2 => "@-o-keyframes",
@@ -124,10 +139,10 @@ class css_prefixer {
                 $new_name = str_replace('@keyframes', $prefixes[$id], $keyframe->name);
 
                 //Check if keyframe with prefix exists
-                $found = FALSE;
+                $found = false;
                 foreach ($keyframe->siblings('css_group') as $sibling) {
                     if ($sibling->name == $new_name) {
-                        $found = TRUE;
+                        $found = true;
                     }
                 }
 
@@ -136,7 +151,7 @@ class css_prefixer {
                     $new_keyframe = $keyframe->make_clone();
                     $new_keyframe->name = $new_name;
                     $keyframe->insert_after($new_keyframe);
-                    $this->_add_prefixes($new_keyframe, array($id => TRUE), TRUE, TRUE);
+                    $this->_add_prefixes($new_keyframe, array($id => true), true, true);
                 }
             }
         }
@@ -146,18 +161,20 @@ class css_prefixer {
      * Transforms the Internet Explorer specific declaration property "filter" to Internet Explorer 8+ compatible
      * declaratiopn property "-ms-filter".
      */
-    private static function filter(css_property $property, css_prefixer $prefixer) {
+    private static function filter(css_property $property, css_prefixer $prefixer)
+    {
         if ($prefixer->msie) {
-            $property->insert_after('-ms-filter', strpos($property->value, "'") === FALSE ? "'$property->value'" : '"' . $property->value . '"');
+            $property->insert_after('-ms-filter', strpos($property->value, "'") === false ? "'$property->value'" : '"' . $property->value . '"');
         }
     }
 
     /**
      * Transforms "opacity: {value}" into browser specific counterparts.
      */
-    private static function opacity(css_property $property, css_prefixer $prefixer) {
+    private static function opacity(css_property $property, css_prefixer $prefixer)
+    {
         if ($prefixer->msie && is_numeric($property->value)) {
-            $ie_value = (int) ((float) $property->value * 100);
+            $ie_value = (int)((float)$property->value * 100);
 
             // Internet Explorer >= 8
             $property->insert_after('-ms-filter', "\"alpha(opacity=" . $ie_value . ")\"");
@@ -170,14 +187,17 @@ class css_prefixer {
     /**
      * Transforms "white-space: pre-wrap" into browser specific counterparts.
      */
-    private static function whiteSpace(css_property $property, css_prefixer $prefixer) {
+    private static function whiteSpace(css_property $property, css_prefixer $prefixer)
+    {
         if (strtolower($property->value) === "pre-wrap") {
             // Firefox < 3
-            if ($prefixer->mozilla)
+            if ($prefixer->mozilla) {
                 $property->insert_after("white-space", "-moz-pre-wrap");
+            }
             // Webkit
-            if ($prefixer->webkit)
+            if ($prefixer->webkit) {
                 $property->insert_after("white-space", "-webkit-pre-wrap");
+            }
             if ($prefixer->opera) {
                 // Opera >= 4 <= 6
                 $property->insert_after("white-space", "-pre-wrap");
@@ -185,43 +205,50 @@ class css_prefixer {
                 $property->insert_after("white-space", "-o-pre-wrap");
             }
             // Internet Explorer >= 5.5
-            if ($prefixer->msie)
+            if ($prefixer->msie) {
                 $property->insert_after("word-wrap", "break-word");
+            }
         }
     }
 
     /**
      * @param $property
      * @param $vendors_ids
+     *
      * @return mixed
      */
-    protected function _prefix_gradients($property, $vendors_ids) {
+    protected function _prefix_gradients($property, $vendors_ids)
+    {
         $gradient_transforms = array(
-            'linear-gradient' => array('-moz-linear-gradient', '-webkit-linear-gradient', '-o-linear-gradient', NULL),
-            'repeating-linear-gradient' => array('-moz-repeating-linear-gradient', '-webkit-repeating-linear-gradient', '-o-linear-repeating-gradient', NULL),
-            'radial-gradient' => array('-moz-radial-gradient', '-webkit-radial-gradient', '-o-radial-gradient', NULL),
-            'repeating-radial-gradient' => array('-moz-repeating-radial-gradient', '-webkit-repeating-radial-gradient', '-o-radial-repeating-gradient', NULL)
+            'linear-gradient' => array('-moz-linear-gradient', '-webkit-linear-gradient', '-o-linear-gradient', null),
+            'repeating-linear-gradient' => array('-moz-repeating-linear-gradient', '-webkit-repeating-linear-gradient', '-o-linear-repeating-gradient', null),
+            'radial-gradient' => array('-moz-radial-gradient', '-webkit-radial-gradient', '-o-radial-gradient', null),
+            'repeating-radial-gradient' => array('-moz-repeating-radial-gradient', '-webkit-repeating-radial-gradient', '-o-radial-repeating-gradient', null)
         );
         foreach ($gradient_transforms as $function => $transformations) {
             $regex = '/\b(?<!-)' . preg_quote($function) . '\b/i';
             if (preg_match($regex, $property->value)) {
                 foreach ($transformations as $vendor_id => $new_name) {
-                    if ($new_name == NULL)
+                    if ($new_name == null) {
                         continue;
+                    }
 
                     $new_value = preg_replace($regex, $new_name, $property->value);
-                    $new_value = strtr($new_value, array(
-                        'to bottom' => 'top',
-                        'to right' => 'left',
-                    ));
+                    $new_value = strtr(
+                        $new_value,
+                        array(
+                            'to bottom' => 'top',
+                            'to right' => 'left',
+                        )
+                    );
 
                     $prop = $vendors_ids[$vendor_id];
                     if ($this->$prop) {
                         //Check if value is not already defined
-                        $already_defined = FALSE;
+                        $already_defined = false;
                         foreach ($property->siblings() as $sibling) {
                             if ($property->value == $new_value) {
-                                $already_defined = TRUE;
+                                $already_defined = true;
                             }
                         }
 
@@ -241,9 +268,13 @@ class css_prefixer {
                     if (!empty($matches)) {
                         $first = reset($matches);
                         $last = end($matches);
-                        if ($first[0] == '#' && $last[0] == '#') {//Colors must be in HEX format
-                            $gradient_type = stripos($value, 'top') !== FALSE ? 0 : 1;
-                            $property->insert_after(new css_property('filter', "progid:DXImageTransform.Microsoft.gradient( startColorstr='{$this->_ie_filter_color($first['color'])}', endColorstr='{$this->_ie_filter_color($last['color'])}',GradientType=$gradient_type)"));
+                        if ($first[0] == '#' && $last[0] == '#') { //Colors must be in HEX format
+                            $gradient_type = stripos($value, 'top') !== false ? 0 : 1;
+                            $property->insert_after(
+                                     new css_property('filter', "progid:DXImageTransform.Microsoft.gradient( startColorstr='{$this->_ie_filter_color(
+                                                                                                                                  $first['color']
+                                     )}', endColorstr='{$this->_ie_filter_color($last['color'])}',GradientType=$gradient_type)")
+                            );
                         }
                     }
                 }
@@ -252,213 +283,213 @@ class css_prefixer {
     }
 
     protected $_transformations = array
-        (
+    (
         // Property						Array(Mozilla, Webkit, Opera, Internet Explorer); NULL values are placeholders and will get ignored
-        'animation' => array(NULL, '-webkit-animation', NULL, NULL),
-        'animation-delay' => array(NULL, '-webkit-animation-delay', NULL, NULL),
-        'animation-direction' => array(NULL, '-webkit-animation-direction', NULL, NULL),
-        'animation-duration' => array(NULL, '-webkit-animation-duration', NULL, NULL),
-        'animation-fill-mode' => array(NULL, '-webkit-animation-fill-mode', NULL, NULL),
-        'animation-iteration-count' => array(NULL, '-webkit-animation-iteration-count', NULL, NULL),
-        'animation-name' => array(NULL, '-webkit-animation-name', NULL, NULL),
-        'animation-play-state' => array(NULL, '-webkit-animation-play-state', NULL, NULL),
-        'animation-timing-function' => array(NULL, '-webkit-animation-timing-function', NULL, NULL),
-        'appearance' => array('-moz-appearance', '-webkit-appearance', NULL, NULL),
-        'backface-visibility' => array(NULL, '-webkit-backface-visibility', NULL, NULL),
-        'background-clip' => array(NULL, '-webkit-background-clip', NULL, NULL),
-        'background-composite' => array(NULL, '-webkit-background-composite', NULL, NULL),
-        'background-inline-policy' => array('-moz-background-inline-policy', NULL, NULL, NULL),
-        'background-origin' => array(NULL, '-webkit-background-origin', NULL, NULL),
-        'background-position-x' => array(NULL, NULL, NULL, '-ms-background-position-x'),
-        'background-position-y' => array(NULL, NULL, NULL, '-ms-background-position-y'),
-        'background-size' => array(NULL, '-webkit-background-size', NULL, NULL),
-        'behavior' => array(NULL, NULL, NULL, '-ms-behavior'),
-        'binding' => array('-moz-binding', NULL, NULL, NULL),
-        'border-after' => array(NULL, '-webkit-border-after', NULL, NULL),
-        'border-after-color' => array(NULL, '-webkit-border-after-color', NULL, NULL),
-        'border-after-style' => array(NULL, '-webkit-border-after-style', NULL, NULL),
-        'border-after-width' => array(NULL, '-webkit-border-after-width', NULL, NULL),
-        'border-before' => array(NULL, '-webkit-border-before', NULL, NULL),
-        'border-before-color' => array(NULL, '-webkit-border-before-color', NULL, NULL),
-        'border-before-style' => array(NULL, '-webkit-border-before-style', NULL, NULL),
-        'border-before-width' => array(NULL, '-webkit-border-before-width', NULL, NULL),
-        'border-border-bottom-colors' => array('-moz-border-bottom-colors', NULL, NULL, NULL),
-        'border-bottom-left-radius' => array('-moz-border-radius-bottomleft', '-webkit-border-bottom-left-radius', NULL, NULL),
-        'border-bottom-right-radius' => array('-moz-border-radius-bottomright', '-webkit-border-bottom-right-radius', NULL, NULL),
-        'border-end' => array('-moz-border-end', '-webkit-border-end', NULL, NULL),
-        'border-end-color' => array('-moz-border-end-color', '-webkit-border-end-color', NULL, NULL),
-        'border-end-style' => array('-moz-border-end-style', '-webkit-border-end-style', NULL, NULL),
-        'border-end-width' => array('-moz-border-end-width', '-webkit-border-end-width', NULL, NULL),
-        'border-fit' => array(NULL, '-webkit-border-fit', NULL, NULL),
-        'border-horizontal-spacing' => array(NULL, '-webkit-border-horizontal-spacing', NULL, NULL),
-        'border-image' => array('-moz-border-image', '-webkit-border-image', NULL, NULL),
-        'border-left-colors' => array('-moz-border-left-colors', NULL, NULL, NULL),
-        'border-radius' => array('-moz-border-radius', '-webkit-border-radius', NULL, NULL),
-        'border-top-right-radius' => array('-moz-border-radius-topright', '-webkit-border-top-right-radius', NULL, NULL),
-        'border-top-left-radius' => array('-moz-border-radius-topleft', '-webkit-border-top-left-radius', NULL, NULL),
-        'border-bottom-right-radius' => array('-moz-border-radius-bottomright', '-webkit-border-bottom-right-radius', NULL, NULL),
-        'border-bottom-left-radius' => array('-moz-border-radius-bottomleft', '-webkit-border-bottom-left-radius', NULL, NULL),
-        'border-border-right-colors' => array('-moz-border-right-colors', NULL, NULL, NULL),
-        'border-start' => array('-moz-border-start', '-webkit-border-start', NULL, NULL),
-        'border-start-color' => array('-moz-border-start-color', '-webkit-border-start-color', NULL, NULL),
-        'border-start-style' => array('-moz-border-start-style', '-webkit-border-start-style', NULL, NULL),
-        'border-start-width' => array('-moz-border-start-width', '-webkit-border-start-width', NULL, NULL),
-        'border-top-colors' => array('-moz-border-top-colors', NULL, NULL, NULL),
-        'border-top-left-radius' => array('-moz-border-radius-topleft', '-webkit-border-top-left-radius', NULL, NULL),
-        'border-top-right-radius' => array('-moz-border-radius-topright', '-webkit-border-top-right-radius', NULL, NULL),
-        'border-vertical-spacing' => array(NULL, '-webkit-border-vertical-spacing', NULL, NULL),
-        'box-align' => array('-moz-box-align', '-webkit-box-align', NULL, NULL),
-        'box-direction' => array('-moz-box-direction', '-webkit-box-direction', NULL, NULL),
-        'box-flex' => array('-moz-box-flex', '-webkit-box-flex', NULL, NULL),
-        'box-flex-group' => array(NULL, '-webkit-box-flex-group', NULL, NULL),
-        'box-flex-lines' => array(NULL, '-webkit-box-flex-lines', NULL, NULL),
-        'box-ordinal-group' => array('-moz-box-ordinal-group', '-webkit-box-ordinal-group', NULL, NULL),
-        'box-orient' => array('-moz-box-orient', '-webkit-box-orient', NULL, NULL),
-        'box-pack' => array('-moz-box-pack', '-webkit-box-pack', NULL, NULL),
-        'box-reflect' => array(NULL, '-webkit-box-reflect', NULL, NULL),
-        'box-shadow' => array('-moz-box-shadow', '-webkit-box-shadow', NULL, NULL),
-        'box-sizing' => array('-moz-box-sizing', NULL, NULL, NULL),
-        'color-correction' => array(NULL, '-webkit-color-correction', NULL, NULL),
-        'column-break-after' => array(NULL, '-webkit-column-break-after', NULL, NULL),
-        'column-break-before' => array(NULL, '-webkit-column-break-before', NULL, NULL),
-        'column-break-inside' => array(NULL, '-webkit-column-break-inside', NULL, NULL),
-        'column-count' => array('-moz-column-count', '-webkit-column-count', NULL, NULL),
-        'column-gap' => array('-moz-column-gap', '-webkit-column-gap', NULL, NULL),
-        'column-rule' => array('-moz-column-rule', '-webkit-column-rule', NULL, NULL),
-        'column-rule-color' => array('-moz-column-rule-color', '-webkit-column-rule-color', NULL, NULL),
-        'column-rule-style' => array('-moz-column-rule-style', '-webkit-column-rule-style', NULL, NULL),
-        'column-rule-width' => array('-moz-column-rule-width', '-webkit-column-rule-width', NULL, NULL),
-        'column-span' => array(NULL, '-webkit-column-span', NULL, NULL),
-        'column-width' => array('-moz-column-width', '-webkit-column-width', NULL, NULL),
-        'columns' => array(NULL, '-webkit-columns', NULL, NULL),
+        'animation' => array(null, '-webkit-animation', null, null),
+        'animation-delay' => array(null, '-webkit-animation-delay', null, null),
+        'animation-direction' => array(null, '-webkit-animation-direction', null, null),
+        'animation-duration' => array(null, '-webkit-animation-duration', null, null),
+        'animation-fill-mode' => array(null, '-webkit-animation-fill-mode', null, null),
+        'animation-iteration-count' => array(null, '-webkit-animation-iteration-count', null, null),
+        'animation-name' => array(null, '-webkit-animation-name', null, null),
+        'animation-play-state' => array(null, '-webkit-animation-play-state', null, null),
+        'animation-timing-function' => array(null, '-webkit-animation-timing-function', null, null),
+        'appearance' => array('-moz-appearance', '-webkit-appearance', null, null),
+        'backface-visibility' => array(null, '-webkit-backface-visibility', null, null),
+        'background-clip' => array(null, '-webkit-background-clip', null, null),
+        'background-composite' => array(null, '-webkit-background-composite', null, null),
+        'background-inline-policy' => array('-moz-background-inline-policy', null, null, null),
+        'background-origin' => array(null, '-webkit-background-origin', null, null),
+        'background-position-x' => array(null, null, null, '-ms-background-position-x'),
+        'background-position-y' => array(null, null, null, '-ms-background-position-y'),
+        'background-size' => array(null, '-webkit-background-size', null, null),
+        'behavior' => array(null, null, null, '-ms-behavior'),
+        'binding' => array('-moz-binding', null, null, null),
+        'border-after' => array(null, '-webkit-border-after', null, null),
+        'border-after-color' => array(null, '-webkit-border-after-color', null, null),
+        'border-after-style' => array(null, '-webkit-border-after-style', null, null),
+        'border-after-width' => array(null, '-webkit-border-after-width', null, null),
+        'border-before' => array(null, '-webkit-border-before', null, null),
+        'border-before-color' => array(null, '-webkit-border-before-color', null, null),
+        'border-before-style' => array(null, '-webkit-border-before-style', null, null),
+        'border-before-width' => array(null, '-webkit-border-before-width', null, null),
+        'border-border-bottom-colors' => array('-moz-border-bottom-colors', null, null, null),
+        'border-bottom-left-radius' => array('-moz-border-radius-bottomleft', '-webkit-border-bottom-left-radius', null, null),
+        'border-bottom-right-radius' => array('-moz-border-radius-bottomright', '-webkit-border-bottom-right-radius', null, null),
+        'border-end' => array('-moz-border-end', '-webkit-border-end', null, null),
+        'border-end-color' => array('-moz-border-end-color', '-webkit-border-end-color', null, null),
+        'border-end-style' => array('-moz-border-end-style', '-webkit-border-end-style', null, null),
+        'border-end-width' => array('-moz-border-end-width', '-webkit-border-end-width', null, null),
+        'border-fit' => array(null, '-webkit-border-fit', null, null),
+        'border-horizontal-spacing' => array(null, '-webkit-border-horizontal-spacing', null, null),
+        'border-image' => array('-moz-border-image', '-webkit-border-image', null, null),
+        'border-left-colors' => array('-moz-border-left-colors', null, null, null),
+        'border-radius' => array('-moz-border-radius', '-webkit-border-radius', null, null),
+        'border-top-right-radius' => array('-moz-border-radius-topright', '-webkit-border-top-right-radius', null, null),
+        'border-top-left-radius' => array('-moz-border-radius-topleft', '-webkit-border-top-left-radius', null, null),
+        'border-bottom-right-radius' => array('-moz-border-radius-bottomright', '-webkit-border-bottom-right-radius', null, null),
+        'border-bottom-left-radius' => array('-moz-border-radius-bottomleft', '-webkit-border-bottom-left-radius', null, null),
+        'border-border-right-colors' => array('-moz-border-right-colors', null, null, null),
+        'border-start' => array('-moz-border-start', '-webkit-border-start', null, null),
+        'border-start-color' => array('-moz-border-start-color', '-webkit-border-start-color', null, null),
+        'border-start-style' => array('-moz-border-start-style', '-webkit-border-start-style', null, null),
+        'border-start-width' => array('-moz-border-start-width', '-webkit-border-start-width', null, null),
+        'border-top-colors' => array('-moz-border-top-colors', null, null, null),
+        'border-top-left-radius' => array('-moz-border-radius-topleft', '-webkit-border-top-left-radius', null, null),
+        'border-top-right-radius' => array('-moz-border-radius-topright', '-webkit-border-top-right-radius', null, null),
+        'border-vertical-spacing' => array(null, '-webkit-border-vertical-spacing', null, null),
+        'box-align' => array('-moz-box-align', '-webkit-box-align', null, null),
+        'box-direction' => array('-moz-box-direction', '-webkit-box-direction', null, null),
+        'box-flex' => array('-moz-box-flex', '-webkit-box-flex', null, null),
+        'box-flex-group' => array(null, '-webkit-box-flex-group', null, null),
+        'box-flex-lines' => array(null, '-webkit-box-flex-lines', null, null),
+        'box-ordinal-group' => array('-moz-box-ordinal-group', '-webkit-box-ordinal-group', null, null),
+        'box-orient' => array('-moz-box-orient', '-webkit-box-orient', null, null),
+        'box-pack' => array('-moz-box-pack', '-webkit-box-pack', null, null),
+        'box-reflect' => array(null, '-webkit-box-reflect', null, null),
+        'box-shadow' => array('-moz-box-shadow', '-webkit-box-shadow', null, null),
+        'box-sizing' => array('-moz-box-sizing', null, null, null),
+        'color-correction' => array(null, '-webkit-color-correction', null, null),
+        'column-break-after' => array(null, '-webkit-column-break-after', null, null),
+        'column-break-before' => array(null, '-webkit-column-break-before', null, null),
+        'column-break-inside' => array(null, '-webkit-column-break-inside', null, null),
+        'column-count' => array('-moz-column-count', '-webkit-column-count', null, null),
+        'column-gap' => array('-moz-column-gap', '-webkit-column-gap', null, null),
+        'column-rule' => array('-moz-column-rule', '-webkit-column-rule', null, null),
+        'column-rule-color' => array('-moz-column-rule-color', '-webkit-column-rule-color', null, null),
+        'column-rule-style' => array('-moz-column-rule-style', '-webkit-column-rule-style', null, null),
+        'column-rule-width' => array('-moz-column-rule-width', '-webkit-column-rule-width', null, null),
+        'column-span' => array(null, '-webkit-column-span', null, null),
+        'column-width' => array('-moz-column-width', '-webkit-column-width', null, null),
+        'columns' => array(null, '-webkit-columns', null, null),
         'filter' => array(__CLASS__, 'filter'),
-        'float-edge' => array('-moz-float-edge', NULL, NULL, NULL),
-        'font-feature-settings' => array('-moz-font-feature-settings', NULL, NULL, NULL),
-        'font-language-override' => array('-moz-font-language-override', NULL, NULL, NULL),
-        'font-size-delta' => array(NULL, '-webkit-font-size-delta', NULL, NULL),
-        'font-smoothing' => array(NULL, '-webkit-font-smoothing', NULL, NULL),
-        'force-broken-image-icon' => array('-moz-force-broken-image-icon', NULL, NULL, NULL),
-        'highlight' => array(NULL, '-webkit-highlight', NULL, NULL),
-        'hyphenate-character' => array(NULL, '-webkit-hyphenate-character', NULL, NULL),
-        'hyphenate-locale' => array(NULL, '-webkit-hyphenate-locale', NULL, NULL),
-        'hyphens' => array(NULL, '-webkit-hyphens', NULL, NULL),
-        'force-broken-image-icon' => array('-moz-image-region', NULL, NULL, NULL),
-        'ime-mode' => array(NULL, NULL, NULL, '-ms-ime-mode'),
-        'interpolation-mode' => array(NULL, NULL, NULL, '-ms-interpolation-mode'),
-        'layout-flow' => array(NULL, NULL, NULL, '-ms-layout-flow'),
-        'layout-grid' => array(NULL, NULL, NULL, '-ms-layout-grid'),
-        'layout-grid-char' => array(NULL, NULL, NULL, '-ms-layout-grid-char'),
-        'layout-grid-line' => array(NULL, NULL, NULL, '-ms-layout-grid-line'),
-        'layout-grid-mode' => array(NULL, NULL, NULL, '-ms-layout-grid-mode'),
-        'layout-grid-type' => array(NULL, NULL, NULL, '-ms-layout-grid-type'),
-        'line-break' => array(NULL, '-webkit-line-break', NULL, '-ms-line-break'),
-        'line-clamp' => array(NULL, '-webkit-line-clamp', NULL, NULL),
-        'line-grid-mode' => array(NULL, NULL, NULL, '-ms-line-grid-mode'),
-        'logical-height' => array(NULL, '-webkit-logical-height', NULL, NULL),
-        'logical-width' => array(NULL, '-webkit-logical-width', NULL, NULL),
-        'margin-after' => array(NULL, '-webkit-margin-after', NULL, NULL),
-        'margin-after-collapse' => array(NULL, '-webkit-margin-after-collapse', NULL, NULL),
-        'margin-before' => array(NULL, '-webkit-margin-before', NULL, NULL),
-        'margin-before-collapse' => array(NULL, '-webkit-margin-before-collapse', NULL, NULL),
-        'margin-bottom-collapse' => array(NULL, '-webkit-margin-bottom-collapse', NULL, NULL),
-        'margin-collapse' => array(NULL, '-webkit-margin-collapse', NULL, NULL),
-        'margin-end' => array('-moz-margin-end', '-webkit-margin-end', NULL, NULL),
-        'margin-start' => array('-moz-margin-start', '-webkit-margin-start', NULL, NULL),
-        'margin-top-collapse' => array(NULL, '-webkit-margin-top-collapse', NULL, NULL),
-        'marquee ' => array(NULL, '-webkit-marquee', NULL, NULL),
-        'marquee-direction' => array(NULL, '-webkit-marquee-direction', NULL, NULL),
-        'marquee-increment' => array(NULL, '-webkit-marquee-increment', NULL, NULL),
-        'marquee-repetition' => array(NULL, '-webkit-marquee-repetition', NULL, NULL),
-        'marquee-speed' => array(NULL, '-webkit-marquee-speed', NULL, NULL),
-        'marquee-style' => array(NULL, '-webkit-marquee-style', NULL, NULL),
-        'mask' => array(NULL, '-webkit-mask', NULL, NULL),
-        'mask-attachment' => array(NULL, '-webkit-mask-attachment', NULL, NULL),
-        'mask-box-image' => array(NULL, '-webkit-mask-box-image', NULL, NULL),
-        'mask-clip' => array(NULL, '-webkit-mask-clip', NULL, NULL),
-        'mask-composite' => array(NULL, '-webkit-mask-composite', NULL, NULL),
-        'mask-image' => array(NULL, '-webkit-mask-image', NULL, NULL),
-        'mask-origin' => array(NULL, '-webkit-mask-origin', NULL, NULL),
-        'mask-position' => array(NULL, '-webkit-mask-position', NULL, NULL),
-        'mask-position-x' => array(NULL, '-webkit-mask-position-x', NULL, NULL),
-        'mask-position-y' => array(NULL, '-webkit-mask-position-y', NULL, NULL),
-        'mask-repeat' => array(NULL, '-webkit-mask-repeat', NULL, NULL),
-        'mask-repeat-x' => array(NULL, '-webkit-mask-repeat-x', NULL, NULL),
-        'mask-repeat-y' => array(NULL, '-webkit-mask-repeat-y', NULL, NULL),
-        'mask-size' => array(NULL, '-webkit-mask-size', NULL, NULL),
-        'match-nearest-mail-blockquote-color' => array(NULL, '-webkit-match-nearest-mail-blockquote-color', NULL, NULL),
-        'max-logical-height' => array(NULL, '-webkit-max-logical-height', NULL, NULL),
-        'max-logical-width' => array(NULL, '-webkit-max-logical-width', NULL, NULL),
-        'min-logical-height' => array(NULL, '-webkit-min-logical-height', NULL, NULL),
-        'min-logical-width' => array(NULL, '-webkit-min-logical-width', NULL, NULL),
-        'object-fit' => array(NULL, NULL, '-o-object-fit', NULL),
-        'object-position' => array(NULL, NULL, '-o-object-position', NULL),
+        'float-edge' => array('-moz-float-edge', null, null, null),
+        'font-feature-settings' => array('-moz-font-feature-settings', null, null, null),
+        'font-language-override' => array('-moz-font-language-override', null, null, null),
+        'font-size-delta' => array(null, '-webkit-font-size-delta', null, null),
+        'font-smoothing' => array(null, '-webkit-font-smoothing', null, null),
+        'force-broken-image-icon' => array('-moz-force-broken-image-icon', null, null, null),
+        'highlight' => array(null, '-webkit-highlight', null, null),
+        'hyphenate-character' => array(null, '-webkit-hyphenate-character', null, null),
+        'hyphenate-locale' => array(null, '-webkit-hyphenate-locale', null, null),
+        'hyphens' => array(null, '-webkit-hyphens', null, null),
+        'force-broken-image-icon' => array('-moz-image-region', null, null, null),
+        'ime-mode' => array(null, null, null, '-ms-ime-mode'),
+        'interpolation-mode' => array(null, null, null, '-ms-interpolation-mode'),
+        'layout-flow' => array(null, null, null, '-ms-layout-flow'),
+        'layout-grid' => array(null, null, null, '-ms-layout-grid'),
+        'layout-grid-char' => array(null, null, null, '-ms-layout-grid-char'),
+        'layout-grid-line' => array(null, null, null, '-ms-layout-grid-line'),
+        'layout-grid-mode' => array(null, null, null, '-ms-layout-grid-mode'),
+        'layout-grid-type' => array(null, null, null, '-ms-layout-grid-type'),
+        'line-break' => array(null, '-webkit-line-break', null, '-ms-line-break'),
+        'line-clamp' => array(null, '-webkit-line-clamp', null, null),
+        'line-grid-mode' => array(null, null, null, '-ms-line-grid-mode'),
+        'logical-height' => array(null, '-webkit-logical-height', null, null),
+        'logical-width' => array(null, '-webkit-logical-width', null, null),
+        'margin-after' => array(null, '-webkit-margin-after', null, null),
+        'margin-after-collapse' => array(null, '-webkit-margin-after-collapse', null, null),
+        'margin-before' => array(null, '-webkit-margin-before', null, null),
+        'margin-before-collapse' => array(null, '-webkit-margin-before-collapse', null, null),
+        'margin-bottom-collapse' => array(null, '-webkit-margin-bottom-collapse', null, null),
+        'margin-collapse' => array(null, '-webkit-margin-collapse', null, null),
+        'margin-end' => array('-moz-margin-end', '-webkit-margin-end', null, null),
+        'margin-start' => array('-moz-margin-start', '-webkit-margin-start', null, null),
+        'margin-top-collapse' => array(null, '-webkit-margin-top-collapse', null, null),
+        'marquee ' => array(null, '-webkit-marquee', null, null),
+        'marquee-direction' => array(null, '-webkit-marquee-direction', null, null),
+        'marquee-increment' => array(null, '-webkit-marquee-increment', null, null),
+        'marquee-repetition' => array(null, '-webkit-marquee-repetition', null, null),
+        'marquee-speed' => array(null, '-webkit-marquee-speed', null, null),
+        'marquee-style' => array(null, '-webkit-marquee-style', null, null),
+        'mask' => array(null, '-webkit-mask', null, null),
+        'mask-attachment' => array(null, '-webkit-mask-attachment', null, null),
+        'mask-box-image' => array(null, '-webkit-mask-box-image', null, null),
+        'mask-clip' => array(null, '-webkit-mask-clip', null, null),
+        'mask-composite' => array(null, '-webkit-mask-composite', null, null),
+        'mask-image' => array(null, '-webkit-mask-image', null, null),
+        'mask-origin' => array(null, '-webkit-mask-origin', null, null),
+        'mask-position' => array(null, '-webkit-mask-position', null, null),
+        'mask-position-x' => array(null, '-webkit-mask-position-x', null, null),
+        'mask-position-y' => array(null, '-webkit-mask-position-y', null, null),
+        'mask-repeat' => array(null, '-webkit-mask-repeat', null, null),
+        'mask-repeat-x' => array(null, '-webkit-mask-repeat-x', null, null),
+        'mask-repeat-y' => array(null, '-webkit-mask-repeat-y', null, null),
+        'mask-size' => array(null, '-webkit-mask-size', null, null),
+        'match-nearest-mail-blockquote-color' => array(null, '-webkit-match-nearest-mail-blockquote-color', null, null),
+        'max-logical-height' => array(null, '-webkit-max-logical-height', null, null),
+        'max-logical-width' => array(null, '-webkit-max-logical-width', null, null),
+        'min-logical-height' => array(null, '-webkit-min-logical-height', null, null),
+        'min-logical-width' => array(null, '-webkit-min-logical-width', null, null),
+        'object-fit' => array(null, null, '-o-object-fit', null),
+        'object-position' => array(null, null, '-o-object-position', null),
         'opacity' => array(__CLASS__, 'opacity'),
-        'outline-radius' => array('-moz-outline-radius', NULL, NULL, NULL),
-        'outline-bottom-left-radius' => array('-moz-outline-radius-bottomleft', NULL, NULL, NULL),
-        'outline-bottom-right-radius' => array('-moz-outline-radius-bottomright', NULL, NULL, NULL),
-        'outline-top-left-radius' => array('-moz-outline-radius-topleft', NULL, NULL, NULL),
-        'outline-top-right-radius' => array('-moz-outline-radius-topright', NULL, NULL, NULL),
-        'padding-after' => array(NULL, '-webkit-padding-after', NULL, NULL),
-        'padding-before' => array(NULL, '-webkit-padding-before', NULL, NULL),
-        'padding-end' => array('-moz-padding-end', '-webkit-padding-end', NULL, NULL),
-        'padding-start' => array('-moz-padding-start', '-webkit-padding-start', NULL, NULL),
-        'perspective' => array(NULL, '-webkit-perspective', NULL, NULL),
-        'perspective-origin' => array(NULL, '-webkit-perspective-origin', NULL, NULL),
-        'perspective-origin-x' => array(NULL, '-webkit-perspective-origin-x', NULL, NULL),
-        'perspective-origin-y' => array(NULL, '-webkit-perspective-origin-y', NULL, NULL),
-        'rtl-ordering' => array(NULL, '-webkit-rtl-ordering', NULL, NULL),
-        'scrollbar-3dlight-color' => array(NULL, NULL, NULL, '-ms-scrollbar-3dlight-color'),
-        'scrollbar-arrow-color' => array(NULL, NULL, NULL, '-ms-scrollbar-arrow-color'),
-        'scrollbar-base-color' => array(NULL, NULL, NULL, '-ms-scrollbar-base-color'),
-        'scrollbar-darkshadow-color' => array(NULL, NULL, NULL, '-ms-scrollbar-darkshadow-color'),
-        'scrollbar-face-color' => array(NULL, NULL, NULL, '-ms-scrollbar-face-color'),
-        'scrollbar-highlight-color' => array(NULL, NULL, NULL, '-ms-scrollbar-highlight-color'),
-        'scrollbar-shadow-color' => array(NULL, NULL, NULL, '-ms-scrollbar-shadow-color'),
-        'scrollbar-track-color' => array(NULL, NULL, NULL, '-ms-scrollbar-track-color'),
-        'stack-sizing' => array('-moz-stack-sizing', NULL, NULL, NULL),
-        'svg-shadow' => array(NULL, '-webkit-svg-shadow', NULL, NULL),
-        'tab-size' => array('-moz-tab-size', NULL, '-o-tab-size', NULL),
-        'table-baseline' => array(NULL, NULL, '-o-table-baseline', NULL),
-        'text-align-last' => array(NULL, NULL, NULL, '-ms-text-align-last'),
-        'text-autospace' => array(NULL, NULL, NULL, '-ms-text-autospace'),
-        'text-combine' => array(NULL, '-webkit-text-combine', NULL, NULL),
-        'text-decorations-in-effect' => array(NULL, '-webkit-text-decorations-in-effect', NULL, NULL),
-        'text-emphasis' => array(NULL, '-webkit-text-emphasis', NULL, NULL),
-        'text-emphasis-color' => array(NULL, '-webkit-text-emphasis-color', NULL, NULL),
-        'text-emphasis-position' => array(NULL, '-webkit-text-emphasis-position', NULL, NULL),
-        'text-emphasis-style' => array(NULL, '-webkit-text-emphasis-style', NULL, NULL),
-        'text-fill-color' => array(NULL, '-webkit-text-fill-color', NULL, NULL),
-        'text-justify' => array(NULL, NULL, NULL, '-ms-text-justify'),
-        'text-kashida-space' => array(NULL, NULL, NULL, '-ms-text-kashida-space'),
-        'text-overflow' => array(NULL, NULL, '-o-text-overflow', '-ms-text-overflow'),
-        'text-security' => array(NULL, '-webkit-text-security', NULL, NULL),
-        'text-size-adjust' => array(NULL, '-webkit-text-size-adjust', NULL, '-ms-text-size-adjust'),
-        'text-stroke' => array(NULL, '-webkit-text-stroke', NULL, NULL),
-        'text-stroke-color' => array(NULL, '-webkit-text-stroke-color', NULL, NULL),
-        'text-stroke-width' => array(NULL, '-webkit-text-stroke-width', NULL, NULL),
-        'text-underline-position' => array(NULL, NULL, NULL, '-ms-text-underline-position'),
+        'outline-radius' => array('-moz-outline-radius', null, null, null),
+        'outline-bottom-left-radius' => array('-moz-outline-radius-bottomleft', null, null, null),
+        'outline-bottom-right-radius' => array('-moz-outline-radius-bottomright', null, null, null),
+        'outline-top-left-radius' => array('-moz-outline-radius-topleft', null, null, null),
+        'outline-top-right-radius' => array('-moz-outline-radius-topright', null, null, null),
+        'padding-after' => array(null, '-webkit-padding-after', null, null),
+        'padding-before' => array(null, '-webkit-padding-before', null, null),
+        'padding-end' => array('-moz-padding-end', '-webkit-padding-end', null, null),
+        'padding-start' => array('-moz-padding-start', '-webkit-padding-start', null, null),
+        'perspective' => array(null, '-webkit-perspective', null, null),
+        'perspective-origin' => array(null, '-webkit-perspective-origin', null, null),
+        'perspective-origin-x' => array(null, '-webkit-perspective-origin-x', null, null),
+        'perspective-origin-y' => array(null, '-webkit-perspective-origin-y', null, null),
+        'rtl-ordering' => array(null, '-webkit-rtl-ordering', null, null),
+        'scrollbar-3dlight-color' => array(null, null, null, '-ms-scrollbar-3dlight-color'),
+        'scrollbar-arrow-color' => array(null, null, null, '-ms-scrollbar-arrow-color'),
+        'scrollbar-base-color' => array(null, null, null, '-ms-scrollbar-base-color'),
+        'scrollbar-darkshadow-color' => array(null, null, null, '-ms-scrollbar-darkshadow-color'),
+        'scrollbar-face-color' => array(null, null, null, '-ms-scrollbar-face-color'),
+        'scrollbar-highlight-color' => array(null, null, null, '-ms-scrollbar-highlight-color'),
+        'scrollbar-shadow-color' => array(null, null, null, '-ms-scrollbar-shadow-color'),
+        'scrollbar-track-color' => array(null, null, null, '-ms-scrollbar-track-color'),
+        'stack-sizing' => array('-moz-stack-sizing', null, null, null),
+        'svg-shadow' => array(null, '-webkit-svg-shadow', null, null),
+        'tab-size' => array('-moz-tab-size', null, '-o-tab-size', null),
+        'table-baseline' => array(null, null, '-o-table-baseline', null),
+        'text-align-last' => array(null, null, null, '-ms-text-align-last'),
+        'text-autospace' => array(null, null, null, '-ms-text-autospace'),
+        'text-combine' => array(null, '-webkit-text-combine', null, null),
+        'text-decorations-in-effect' => array(null, '-webkit-text-decorations-in-effect', null, null),
+        'text-emphasis' => array(null, '-webkit-text-emphasis', null, null),
+        'text-emphasis-color' => array(null, '-webkit-text-emphasis-color', null, null),
+        'text-emphasis-position' => array(null, '-webkit-text-emphasis-position', null, null),
+        'text-emphasis-style' => array(null, '-webkit-text-emphasis-style', null, null),
+        'text-fill-color' => array(null, '-webkit-text-fill-color', null, null),
+        'text-justify' => array(null, null, null, '-ms-text-justify'),
+        'text-kashida-space' => array(null, null, null, '-ms-text-kashida-space'),
+        'text-overflow' => array(null, null, '-o-text-overflow', '-ms-text-overflow'),
+        'text-security' => array(null, '-webkit-text-security', null, null),
+        'text-size-adjust' => array(null, '-webkit-text-size-adjust', null, '-ms-text-size-adjust'),
+        'text-stroke' => array(null, '-webkit-text-stroke', null, null),
+        'text-stroke-color' => array(null, '-webkit-text-stroke-color', null, null),
+        'text-stroke-width' => array(null, '-webkit-text-stroke-width', null, null),
+        'text-underline-position' => array(null, null, null, '-ms-text-underline-position'),
         'transform' => array('-moz-transform', '-webkit-transform', '-o-transform', '-ms-transform'),
-        'transform-origin' => array('-moz-transform-origin', '-webkit-transform-origin', '-o-transform-origin', NULL),
-        'transform-origin-x' => array(NULL, '-webkit-transform-origin-x', NULL, NULL),
-        'transform-origin-y' => array(NULL, '-webkit-transform-origin-y', NULL, NULL),
-        'transform-origin-z' => array(NULL, '-webkit-transform-origin-z', NULL, NULL),
-        'transform-style' => array(NULL, '-webkit-transform-style', NULL, NULL),
-        'transition' => array('-moz-transition', '-webkit-transition', '-o-transition', NULL),
-        'transition-delay' => array('-moz-transition-delay', '-webkit-transition-delay', '-o-transition-delay', NULL),
-        'transition-duration' => array('-moz-transition-duration', '-webkit-transition-duration', '-o-transition-duration', NULL),
-        'transition-property' => array('-moz-transition-property', '-webkit-transition-property', '-o-transition-property', NULL),
-        'transition-timing-function' => array('-moz-transition-timing-function', '-webkit-transition-timing-function', '-o-transition-timing-function', NULL),
-        'user-drag' => array(NULL, '-webkit-user-drag', NULL, NULL),
-        'user-focus' => array('-moz-user-focus', NULL, NULL, NULL),
-        'user-input' => array('-moz-user-input', NULL, NULL, NULL),
-        'user-modify' => array('-moz-user-modify', '-webkit-user-modify', NULL, NULL),
-        'user-select' => array('-moz-user-select', '-webkit-user-select', NULL, NULL),
+        'transform-origin' => array('-moz-transform-origin', '-webkit-transform-origin', '-o-transform-origin', null),
+        'transform-origin-x' => array(null, '-webkit-transform-origin-x', null, null),
+        'transform-origin-y' => array(null, '-webkit-transform-origin-y', null, null),
+        'transform-origin-z' => array(null, '-webkit-transform-origin-z', null, null),
+        'transform-style' => array(null, '-webkit-transform-style', null, null),
+        'transition' => array('-moz-transition', '-webkit-transition', '-o-transition', null),
+        'transition-delay' => array('-moz-transition-delay', '-webkit-transition-delay', '-o-transition-delay', null),
+        'transition-duration' => array('-moz-transition-duration', '-webkit-transition-duration', '-o-transition-duration', null),
+        'transition-property' => array('-moz-transition-property', '-webkit-transition-property', '-o-transition-property', null),
+        'transition-timing-function' => array('-moz-transition-timing-function', '-webkit-transition-timing-function', '-o-transition-timing-function', null),
+        'user-drag' => array(null, '-webkit-user-drag', null, null),
+        'user-focus' => array('-moz-user-focus', null, null, null),
+        'user-input' => array('-moz-user-input', null, null, null),
+        'user-modify' => array('-moz-user-modify', '-webkit-user-modify', null, null),
+        'user-select' => array('-moz-user-select', '-webkit-user-select', null, null),
         'white-space' => array(__CLASS__, 'whiteSpace'),
-        'window-shadow' => array('-moz-window-shadow', NULL, NULL, NULL),
-        'word-break' => array(NULL, NULL, NULL, '-ms-word-break'),
-        'word-wrap' => array(NULL, NULL, NULL, '-ms-word-wrap'),
-        'writing-mode' => array(NULL, '-webkit-writing-mode', NULL, '-ms-writing-mode'),
-        'zoom' => array(NULL, NULL, NULL, '-ms-zoom')
+        'window-shadow' => array('-moz-window-shadow', null, null, null),
+        'word-break' => array(null, null, null, '-ms-word-break'),
+        'word-wrap' => array(null, null, null, '-ms-word-wrap'),
+        'writing-mode' => array(null, '-webkit-writing-mode', null, '-ms-writing-mode'),
+        'zoom' => array(null, null, null, '-ms-zoom')
     );
 
 }

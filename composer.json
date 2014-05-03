@@ -6,7 +6,8 @@
     "authors": [
         {
             "name": "Javier Marín",
-            "email": "contacto@ideatic.net"
+            "email": "contacto@ideatic.net",
+            "homepage": "http://www.ideatic.net/"
         }
     ],
     "autoload": {

@@ -3,22 +3,27 @@
 /**
  * Represents a CSS Color
  */
-class css_color {
+class css_color
+{
 
-    public $valid = FALSE;
+    public $valid = false;
     public $r, $g, $b, $a = 1;
 
-    public function __construct($color) {
+    public function __construct($color)
+    {
         $this->parse($color);
     }
 
     /**
      * Parse the specified color. Valid formats: rgb, rgba, hex, hsl, blue/white/...
+     *
      * @param string $color
+     *
      * @return boolean
      */
-    public function parse($color) {
-        $this->valid = FALSE;
+    public function parse($color)
+    {
+        $this->valid = false;
         if (is_array($color)) {
             if (count($color) == 3 || count($color) == 4) {
                 $this->r = $color[0];
@@ -66,7 +71,7 @@ class css_color {
             );
 
             //Find the current format
-            $this->valid = FALSE;
+            $this->valid = false;
             foreach ($formats as $format) {
                 if (preg_match($format['regex'], $color, $match)) {
                     $callback = $format['callback'];
@@ -78,7 +83,7 @@ class css_color {
                         $this->$prop = $v < 0 || is_nan($v) ? 0 : min($v, $max);
                     }
 
-                    $this->valid = TRUE;
+                    $this->valid = true;
                     break;
                 }
             }
@@ -86,20 +91,23 @@ class css_color {
         return $this->valid;
     }
 
-    private function _parse_rgba($match) {
+    private function _parse_rgba($match)
+    {
         $this->r = intval($match[1]);
         $this->g = intval($match[2]);
         $this->b = intval($match[3]);
         $this->a = !isset($match[4]) || $match[4] == '' ? 1 : floatval($match[4]);
     }
 
-    private function _parse_hex($match) {
+    private function _parse_hex($match)
+    {
         $this->r = hexdec($match[1]);
         $this->g = hexdec($match[2]);
         $this->b = hexdec($match[3]);
     }
 
-    private function _parse_hex_short($match) {
+    private function _parse_hex_short($match)
+    {
         $this->r = hexdec($match[1] . $match[1]);
         $this->g = hexdec($match[2] . $match[2]);
         $this->b = hexdec($match[3] . $match[3]);
@@ -107,11 +115,12 @@ class css_color {
 
     /**
      * Convert a HSL value to RGB
-     * 
+     *
      * Based on: {@link http://www.easyrgb.com/index.php?X=MATH&H=19#text19}.ss Lightnesss
      * @return string
      */
-    private function _parse_hsl($match) {
+    private function _parse_hsl($match)
+    {
         list($hue, $saturation, $lightness) = array($match[1], $match[2], $match[3]);
 
         $hue = $hue / 360;
@@ -134,7 +143,8 @@ class css_color {
         }
     }
 
-    private function hue2rgb($v1, $v2, $hue) {
+    private function hue2rgb($v1, $v2, $hue)
+    {
         if ($hue < 0) {
             $hue += 1;
         }
@@ -148,7 +158,7 @@ class css_color {
             return ($v2);
         }
         if ((3 * $hue) < 2) {
-            return ($v1 + ($v2 - $v1) * (( 2 / 3) - $hue) * 6);
+            return ($v1 + ($v2 - $v1) * ((2 / 3) - $hue) * 6);
         }
         return $v1;
     }
@@ -157,7 +167,8 @@ class css_color {
      * Get the color in CSS rgb/rgba format
      * @return string
      */
-    public function to_rgb($alpha = TRUE) {
+    public function to_rgb($alpha = true)
+    {
         if ($alpha && $this->a != 1) {
             return "rgba($this->r, $this->g, $this->b, $this->a)";
         } else {
@@ -169,11 +180,12 @@ class css_color {
      * Get the color in HEX format
      * @return string
      */
-    public function to_hex($allow_short = TRUE) {
+    public function to_hex($allow_short = true)
+    {
         $hex = "#";
-        $hex.= str_pad(dechex($this->r), 2, "0", STR_PAD_LEFT);
-        $hex.= str_pad(dechex($this->g), 2, "0", STR_PAD_LEFT);
-        $hex.= str_pad(dechex($this->b), 2, "0", STR_PAD_LEFT);
+        $hex .= str_pad(dechex($this->r), 2, "0", STR_PAD_LEFT);
+        $hex .= str_pad(dechex($this->g), 2, "0", STR_PAD_LEFT);
+        $hex .= str_pad(dechex($this->b), 2, "0", STR_PAD_LEFT);
 
         if ($allow_short && $hex[1] == $hex[2] && $hex[3] == $hex[4] && $hex[5] == $hex[6]) {
             $hex = "#{$hex[1]}{$hex[3]}{$hex[5]}";
@@ -186,7 +198,8 @@ class css_color {
      * Get the color in a RGB/RGBA array
      * @return array
      */
-    public function to_array($alpha = TRUE) {
+    public function to_array($alpha = true)
+    {
         if ($alpha && $this->a != 1) {
             return array($this->r, $this->g, $this->b, $this->a);
         } else {
@@ -196,10 +209,13 @@ class css_color {
 
     /**
      * Parse the input color
+     *
      * @param string $color
+     *
      * @return self
      */
-    public static function create($color) {
+    public static function create($color)
+    {
         return new self($color);
     }
 
@@ -207,7 +223,8 @@ class css_color {
      * List of common color names used in HTML and CSS
      * @return array
      */
-    public static function color_names() {
+    public static function color_names()
+    {
         return array(
             'aliceblue' => 'f0f8ff',
             'antiquewhite' => 'faebd7',
