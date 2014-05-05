@@ -68,12 +68,13 @@ class css_cleaner
             $valid_selectors = array();
             foreach ($current_selectors as $selector) {
                 $include = true;
-                foreach ($this->_get_tokens($selector) as $token) {
-                    if (!isset($project_tokens[$token])) {
-                        if ($token[0] == '(' && $token[strlen($token) - 1] == ')') {
-                            continue; //Ignore selectors :lang(es) or :nth-child(N)
-                        }
 
+                //Remove pseudo-class
+                $clean_selector = preg_replace('/\:.*/', '', $selector);
+
+                //Look for selector tokens in the token list
+                foreach ($this->_get_tokens($clean_selector) as $token) {
+                    if (!isset($project_tokens[$token])) {
                         //Remove current selector
                         $include = false;
                     }
@@ -186,23 +187,32 @@ class css_cleaner
     protected function _parse_file($path)
     {
         $content = file_get_contents($path);
+        $tokens = array();
 
         switch ($this->method) {
             case self::METHOD_SAFE:
                 //Find ALL tokens
-                return $this->_get_tokens($content);
+                $tokens = $this->_get_tokens($content);
 
             case self::METHOD_BEST_CLEAN:
-                $tokens = array();
 
                 //Find quoted strings
+                $concat = '';
                 for ($i = 0, $c = strlen($content); $i < $c; $i++) {
                     $char = $content[$i];
                     if ($char == '"' || $char == "'") {
-                        $string = self::_read_string($content, $i);
+                        $string = $concat . self::_read_string($content, $i);
 
                         foreach ($this->_get_tokens($string) as $token) {
                             $tokens[] = $token;
+                        }
+
+                        //Find concatenated
+                        if (preg_match('/^\s*[\+\.]\s*[\'\"]/', substr($content, $i + 1), $match)) {
+                            $i += strlen($match[0]) - 1;
+                            $concat = $string;
+                        } else {
+                            $concat = '';
                         }
                     }
                 }
@@ -246,17 +256,14 @@ class css_cleaner
             $char = $code[$offset];
 
             if ($in_string && $in_string == $char && $prev != '\\') {
-                $in_string = false;
-                $string .= $char;
                 return $string;
+            } elseif (!$in_string && ($char == '"' || $char == "'")) {
+                $in_string = $char;
+                $prev = $char;
             } else {
-                if (!$in_string && ($char == '"' || $char == "'")) {
-                    $in_string = $char;
-                }
+                $prev = $char;
+                $string .= $char;
             }
-
-            $prev = $char;
-            $string .= $char;
         }
 
         return $string;
@@ -264,35 +271,6 @@ class css_cleaner
 
     protected function _default_tokens()
     {
-        return array(
-            //CSS 1&2
-            'after',
-            'before',
-            'hover',
-            'focus',
-            'active',
-            'link',
-            'visited',
-            'lang',
-            'first-child',
-            //CSS3
-            'nth-child',
-            'nth-last-child',
-            'nth-of-type',
-            'nth-last-of-type',
-            'nth-child',
-            'last-child',
-            'first-of-type',
-            'last-of-type',
-            'only-child',
-            'only-of-type',
-            'root',
-            'empty',
-            'target',
-            'enabled',
-            'disabled',
-            'checked',
-            'not'
-        );
+        return array();
     }
 }

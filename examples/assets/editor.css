@@ -111,10 +111,18 @@ textarea:hover, .CodeMirror:hover, textarea:focus, .CodeMirror-focused {
     width: auto;
 }
 
+.not-used:hover {
+    width: auto;
+}
+
 notused[type=radio] {
     clear: both;
 }
 
-#editor:nth-child(3n){
+#editor:nth-child(3n) {
     background: red;
+}
+
+.used_on_concatenation {
+    color: blue;
 }

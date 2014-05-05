@@ -84,6 +84,11 @@ require 'common.php';
         CodeMirror.fromTextArea(document.getElementById("source"), settings);
         settings['readOnly'] = true;
         CodeMirror.fromTextArea(document.getElementById("result"), settings);
+
+        //Dummy JS to test concatenated string finding
+        var dummy = "used" + "_"
+            + "on" + "_" +
+            "concatenation";
     </script>
     </body>
     </html>

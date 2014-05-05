@@ -5,7 +5,7 @@
 // Based on leafo/lessphp cli utility
 
 error_reporting(E_ALL);
-require '../vendor/autoload.php';
+require dirname(__FILE__).'/../vendor/autoload.php';
 
 $exe = array_shift($argv); // remove filename
 
@@ -15,11 +15,11 @@ Usage: $exe [options] input-file [output-file]
 Options include:
 
     -h, --help  Show this message
-    -c=comp     Compress CSS (defaults true)
-    -o=opt      Optimize CSS (defaults true)
+    -c=comp     Compress CSS (default: true)
+    -o=opt      Optimize CSS (default: true)
+    -v=vendors  Add vendor prefixes (default: all)
     -r          Read from STDIN instead of input-file
     -u          Clean unused selectors (css_cleaner)
-    -v=vendors  Add vendor prefixes (default all)
 
 css_cleaner options:
 

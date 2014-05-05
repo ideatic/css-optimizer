@@ -1,4 +1,4 @@
-# css_optimizer v0.1
+# css_optimizer
 
 Optimize, minify and add vendor prefixes for your CSS
 
