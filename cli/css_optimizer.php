@@ -5,7 +5,7 @@
 // Based on leafo/lessphp cli utility
 
 error_reporting(E_ALL);
-require dirname(__FILE__).'/../vendor/autoload.php';
+require dirname(__FILE__) . '/../vendor/autoload.php';
 
 $exe = array_shift($argv); // remove filename
 
@@ -18,7 +18,7 @@ Options include:
     -c=comp     Compress CSS (default: true)
     -o=opt      Optimize CSS (default: true)
     -v=vendors  Add vendor prefixes (default: webkit,msie,firefox)
-    -r          Read from STDIN instead of input-file
+    -s          Read from STDIN instead of input-file
     -u          Clean unused selectors (css_cleaner)
 
 css_cleaner options:
@@ -26,11 +26,12 @@ css_cleaner options:
     -p=paths    Required. Path(s) of the project source files
     -m=mode     Clean mode (safe/best)
     -e=exts     Extensions to analice
+    -r=path     Path to selector usage report (optional)
 
 
 EOT;
 
-$opts = getopt('hc:o:ruv:p:m:e:', array('help'));
+$opts = getopt('hc:o:suv:p:m:e:r:', array('help'));
 if ($opts === false) {
     exit($HELP);
 }
@@ -51,7 +52,7 @@ function has()
     return false;
 }
 
-function get($option, $default)
+function get($option, $default = '')
 {
     global $opts;
     return isset($opts[$option]) ? $opts[$option] : $default;
@@ -77,7 +78,7 @@ try {
     $start = microtime(true);
 
     //Get input
-    if (has("r")) {
+    if (has("s")) {
         //Read from STDIN
         if (!empty($argv)) {
             $data = $argv[0];
@@ -119,7 +120,10 @@ try {
         $cleaner->project_files = explode(PATH_SEPARATOR, $opts['p']);
         $cleaner->method = get('m', 'safe') == 'safe' ? css_cleaner::METHOD_SAFE : css_cleaner::METHOD_BEST_CLEAN;
         if (has('e')) {
-            $cleaner->extensions = $opts['e'];
+            $cleaner->extensions = get('e');
+        }
+        if (has('r')) {
+            $cleaner->report_path = get('r');
         }
         $cleaner->clean($css_doc);
     }

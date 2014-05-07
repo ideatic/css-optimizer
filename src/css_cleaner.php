@@ -44,6 +44,12 @@ class css_cleaner
     public $verbose = false;
 
     /**
+     * Path where a selector usage report will be saved
+     * @var string
+     */
+    public $report_path;
+
+    /**
      * Clean a CSS file
      *
      * @param css_group $css_doc CSS file to clean
@@ -57,6 +63,7 @@ class css_cleaner
 
         //Clean selectors
         $removed = 0;
+        $selector_usage = array();
         foreach ($css_doc->find_all('css_group') as $group) {
             /* @var $group css_group */
 
@@ -82,6 +89,14 @@ class css_cleaner
 
                 if ($include) {
                     $valid_selectors[] = $selector;
+
+                    if ($this->report_path) {
+                        $count = 0;
+                        foreach ($this->_get_tokens($clean_selector) as $token) {
+                            $count += $project_tokens[$token];
+                        }
+                        $selector_usage[$clean_selector] = (isset($selector_usage[$clean_selector])) ? $selector_usage[$clean_selector] + $count : $count;
+                    }
                 }
             }
 
@@ -101,6 +116,20 @@ class css_cleaner
                     echo "Removed $dif\n";
                 }
             }
+        }
+
+        //Create report
+        if ($this->report_path) {
+            asort($selector_usage);
+            $lines = array(
+                'Selector usage report. Generated on ' . date('r'),
+                ''
+            );
+            foreach ($selector_usage as $selector => $freq) {
+                $lines[] = "$selector found $freq references";
+            }
+
+            file_put_contents($this->report_path, implode(PHP_EOL, $lines));
         }
 
         if ($this->verbose) {
