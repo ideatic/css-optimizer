@@ -17,7 +17,7 @@ Options include:
     -h, --help  Show this message
     -c=comp     Compress CSS (default: true)
     -o=opt      Optimize CSS (default: true)
-    -v=vendors  Add vendor prefixes (default: all)
+    -v=vendors  Add vendor prefixes (default: webkit,msie,firefox)
     -r          Read from STDIN instead of input-file
     -u          Clean unused selectors (css_cleaner)
 
@@ -128,7 +128,7 @@ try {
     $optimizer = new css_optimizer();
     $optimizer->compress = get('c', true);
     $optimizer->optimize = get('o', true);
-    $optimizer->prefixes = get('v', 'all');
+    $optimizer->prefixes = get('v', 'webkit,msie,firefox');
 
     $optimizer->process($css_doc);
 
