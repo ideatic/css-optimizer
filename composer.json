@@ -13,5 +13,6 @@
     "autoload": {
         "classmap": ["src/"]
     },
-    "keywords": ["css"]
+    "keywords": ["css"],
+    "bin": ["cli/css_optimizer.php"]
 }
