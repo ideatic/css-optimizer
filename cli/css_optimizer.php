@@ -5,7 +5,12 @@
 // Based on leafo/lessphp cli utility
 
 error_reporting(E_ALL);
-require dirname(__FILE__) . '/../vendor/autoload.php';
+
+if (file_exists(dirname(__FILE__) . '/../../../autoload.php')) {
+    require dirname(__FILE__) . '/../../../autoload.php';
+} else {
+    require dirname(__FILE__) . '/../vendor/autoload.php';
+}
 
 $exe = array_shift($argv); // remove filename
 
