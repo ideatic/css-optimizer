@@ -1,5 +1,5 @@
 {
-    "name": "ideatic/css_optimizer",
+    "name": "ideatic/css-optimizer",
     "description": "Optimize, minify and add vendor prefixes for your CSS",
     "type": "library",
     "license": "MIT",
