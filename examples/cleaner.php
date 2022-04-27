@@ -17,11 +17,11 @@ require 'common.php';
         <div id="editor">
             <div>
                 <label for="source">Original CSS</label>
-                <textarea id="source" name="source"><?php echo isset($_POST['source']) ? $_POST['source'] : file_get_contents('assets/editor.css') ?></textarea>
+                <textarea id="source" name="source"><?php echo $_POST['source'] ?? file_get_contents('assets/editor.css') ?></textarea>
             </div>
             <div>
                 <label for="result">Cleaned CSS</label>
-                <textarea id="result" name="result"><?php echo isset($process_data['css']) ? $process_data['css'] : ''; ?></textarea>
+                <textarea id="result" name="result"><?php echo $process_data['css'] ?? ''; ?></textarea>
             </div>
         </div>
         <div id="extra">
@@ -100,7 +100,7 @@ function do_optimization()
     $settings = array();
     $cleaner = new css_cleaner();
     foreach (array('method', 'compress') as $prop) {
-        $settings[$prop] = isset($_POST[$prop]) ? $_POST[$prop] : (isset($cleaner->$prop) ? $cleaner->$prop : false);
+        $settings[$prop] = $_POST[$prop] ?? ($cleaner->$prop ?? false);
         $cleaner->$prop = $settings[$prop];
     }
 

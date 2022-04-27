@@ -302,7 +302,7 @@ class css_optimizer
             $is_hack = in_array($property->name, array('filter', '-ms-filter')) //Filter
                        || in_array($property->name[0], array('*', '_')) //Hack (_width, *background)
                        || stripos($property->value, 'expression') === 0 //CSS Expression
-                       || substr($property->value, -2) === '\9'; //IE8 Hack
+                       || str_ends_with($property->value, '\9'); //IE8 Hack
 
             if ($is_hack) {
                 $property->remove();

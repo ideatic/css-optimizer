@@ -51,7 +51,7 @@ class css_parser
                         $partial = '';
                     } else {
                         if ($char == ';') {
-                            if (strpos(trim($partial), '@import') === 0) { //@import
+                            if (str_starts_with(trim($partial), '@import')) { //@import
                                 $import = new css_element();
                                 $import->value = $this->_process_string($partial) . ';';
                                 $import->type = 'import';

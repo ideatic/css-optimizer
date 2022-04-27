@@ -60,7 +60,7 @@ function has()
 function get($option, $default = '')
 {
     global $opts;
-    return isset($opts[$option]) ? $opts[$option] : $default;
+    return $opts[$option] ?? $default;
 }
 
 function err($msg)

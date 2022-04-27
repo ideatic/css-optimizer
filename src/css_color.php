@@ -29,7 +29,7 @@ class css_color
                 $this->r = $color[0];
                 $this->g = $color[1];
                 $this->b = $color[2];
-                $this->a = isset($color[3]) ? $color[3] : 1;
+                $this->a = $color[3] ?? 1;
             }
         } else {
             $this->r = $this->g = $this->b = 0;
