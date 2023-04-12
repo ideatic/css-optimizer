@@ -2,7 +2,7 @@
 
 
 
-function ReadableTime($time)
+function ReadableTime($time): string
 {
     if ($time > 60) {
         $min = floor($time / 60);
@@ -17,7 +17,7 @@ function ReadableTime($time)
     }
 }
 
-function ReadableSize($size, $kilobyte = 1024, $format = '%size% %unit%')
+function ReadableSize($size, $kilobyte = 1024, $format = '%size% %unit%'): string
 {
     if ($size < $kilobyte) {
         $unit = 'bytes';

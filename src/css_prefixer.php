@@ -10,17 +10,17 @@
 class css_prefixer
 {
 
-    public $webkit = true;
-    public $mozilla = true;
-    public $opera = true;
-    public $msie = true;
+    public bool $webkit = true;
+    public bool $mozilla = true;
+    public bool $opera = true;
+    public bool $msie = true;
 
-    public function add_prefixes(css_group $css_doc)
+    public function add_prefixes(css_group $css_doc): void
     {
-        return $this->_add_prefixes($css_doc);
+        $this->_add_prefixes($css_doc);
     }
 
-    protected function _add_prefixes(css_group $css_doc, $vendor_override = null, $ignore_keyframes = false, $remove_original_property = false)
+    protected function _add_prefixes(css_group $css_doc, array $vendor_override = null, bool $ignore_keyframes = false, bool $remove_original_property = false): void
     {
         $vendors_ids = [
             1 => 'webkit',
@@ -73,7 +73,7 @@ class css_prefixer
         }
     }
 
-    private function _ie_filter_color($color)
+    private function _ie_filter_color($color): string
     {
         $color = trim($color);
         if (preg_match('/#[0-9a-f]+/i', $color)) {
@@ -86,13 +86,7 @@ class css_prefixer
         return strtoupper($color);
     }
 
-    /**
-     * @param $property
-     * @param $vendors_ids
-     *
-     * @return boolean
-     */
-    private function _apply_transformation($property, $vendors_ids)
+    private function _apply_transformation(css_property $property, array $vendors_ids): bool
     {
         $transformation = $this->_transformations[$property->name];
         $applied = false;
@@ -125,7 +119,7 @@ class css_prefixer
         return $applied;
     }
 
-    private function _prefix_keyframe(css_group $keyframe, $apply_list)
+    private function _prefix_keyframe(css_group $keyframe, array $apply_list): void
     {
         $prefixes = [
             3 => "@-ms-keyframes",
@@ -136,7 +130,7 @@ class css_prefixer
 
         foreach ($prefixes as $id => $value) {
             if (isset($apply_list[$id]) && $apply_list[$id]) {
-                $new_name = str_replace('@keyframes', $prefixes[$id], $keyframe->name);
+                $new_name = str_replace('@keyframes', $value, $keyframe->name);
 
                 //Check if keyframe with prefix exists
                 $found = false;
@@ -161,7 +155,7 @@ class css_prefixer
      * Transforms the Internet Explorer specific declaration property "filter" to Internet Explorer 8+ compatible
      * declaratiopn property "-ms-filter".
      */
-    private static function filter(css_property $property, css_prefixer $prefixer)
+    private static function filter(css_property $property, css_prefixer $prefixer): void
     {
         if ($prefixer->msie) {
             $property->insert_after('-ms-filter', !str_contains($property->value, "'") ? "'$property->value'" : '"' . $property->value . '"');
@@ -171,7 +165,7 @@ class css_prefixer
     /**
      * Transforms "opacity: {value}" into browser specific counterparts.
      */
-    private static function opacity(css_property $property, css_prefixer $prefixer)
+    private static function opacity(css_property $property, css_prefixer $prefixer): void
     {
         if ($prefixer->msie && is_numeric($property->value)) {
             $ie_value = (int)((float)$property->value * 100);
@@ -187,7 +181,7 @@ class css_prefixer
     /**
      * Transforms "white-space: pre-wrap" into browser specific counterparts.
      */
-    private static function whiteSpace(css_property $property, css_prefixer $prefixer)
+    private static function whiteSpace(css_property $property, css_prefixer $prefixer): void
     {
         if (strtolower($property->value) === "pre-wrap") {
             // Firefox < 3
@@ -211,13 +205,7 @@ class css_prefixer
         }
     }
 
-    /**
-     * @param $property
-     * @param $vendors_ids
-     *
-     * @return mixed
-     */
-    protected function _prefix_gradients($property, $vendors_ids)
+    protected function _prefix_gradients(css_property $property, array $vendors_ids): void
     {
         $gradient_transforms = [
             'linear-gradient'           => ['-moz-linear-gradient', '-webkit-linear-gradient', '-o-linear-gradient', null],
@@ -247,7 +235,7 @@ class css_prefixer
                         //Check if value is not already defined
                         $already_defined = false;
                         foreach ($property->siblings() as $sibling) {
-                            if ($property->value == $new_value) {
+                            if ($sibling->value == $new_value) {
                                 $already_defined = true;
                             }
                         }
@@ -284,7 +272,7 @@ class css_prefixer
         }
     }
 
-    protected $_transformations = [
+    protected array $_transformations = [
         // Property						Array(Mozilla, Webkit, Opera, Internet Explorer); NULL values are placeholders and will get ignored
         'animation'                           => [null, '-webkit-animation', null, null],
         'animation-delay'                     => [null, '-webkit-animation-delay', null, null],

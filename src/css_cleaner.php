@@ -22,32 +22,32 @@ class css_cleaner
      */
     const METHOD_SAFE = 1;
 
-    public $method = self::METHOD_SAFE;
+    public int $method = self::METHOD_SAFE;
 
     /**
      * Input files or folders where the project source files are located
      * (templates, javascript code, etc.)
      * @var string[]
      */
-    public $project_files = array();
+    public array $project_files = [];
 
     /**
      * List of extensions, separated by commas, which will be processed
      * @var string
      */
-    public $extensions = 'php,twig,tpl,htm,html,js,rb,py,djt';
+    public string $extensions = 'php,twig,tpl,htm,html,js,rb,py,djt';
 
     /**
      * Print information during the process
      * @var bool
      */
-    public $verbose = false;
+    public bool $verbose = false;
 
     /**
      * Path where a selector usage report will be saved
      * @var string
      */
-    public $report_path;
+    public string $report_path;
 
     /**
      * Clean a CSS file
@@ -56,14 +56,14 @@ class css_cleaner
      *
      * @return css_group
      */
-    public function clean(css_group $css_doc)
+    public function clean(css_group $css_doc): css_group
     {
         //Find tokens
         $project_tokens = $this->_find_tokens();
 
         //Clean selectors
         $removed = 0;
-        $selector_usage = array();
+        $selector_usage = [];
         foreach ($css_doc->find_all('css_group') as $group) {
             /* @var $group css_group */
 
@@ -72,7 +72,7 @@ class css_cleaner
             }
 
             $current_selectors = $group->selectors();
-            $valid_selectors = array();
+            $valid_selectors = [];
             foreach ($current_selectors as $selector) {
                 $include = true;
 
@@ -121,10 +121,10 @@ class css_cleaner
         //Create report
         if ($this->report_path) {
             asort($selector_usage);
-            $lines = array(
+            $lines = [
                 'Selector usage report. Generated on ' . date('r'),
                 ''
-            );
+            ];
             foreach ($selector_usage as $selector => $freq) {
                 $lines[] = "$selector found $freq references";
             }
@@ -139,7 +139,7 @@ class css_cleaner
         return $css_doc;
     }
 
-    protected function _find_tokens()
+    protected function _find_tokens(): array
     {
         //Find input files
         $valid_extensions = array_map(
@@ -149,7 +149,7 @@ class css_cleaner
             explode(',', $this->extensions)
         );
 
-        $files = array();
+        $files = [];
         foreach ($this->project_files as $path) {
             if (is_dir($path)) {
                 $this->_find_files($path, $files, $valid_extensions);
@@ -186,7 +186,7 @@ class css_cleaner
         return $tokens;
     }
 
-    protected function _find_files($path, &$files, $valid_extensions)
+    protected function _find_files($path, &$files, $valid_extensions): void
     {
         $dirh = opendir($path);
         if ($dirh === false) {
@@ -213,10 +213,10 @@ class css_cleaner
         closedir($dirh);
     }
 
-    protected function _parse_file($path)
+    protected function _parse_file($path): array
     {
         $content = file_get_contents($path);
-        $tokens = array();
+        $tokens = [];
 
         switch ($this->method) {
             case self::METHOD_SAFE:
@@ -260,7 +260,7 @@ class css_cleaner
         }
     }
 
-    protected function _get_tokens($string)
+    protected function _get_tokens($string): array
     {
         preg_match_all('/[\p{L}\p{N}-_]+/u', $string, $matches);
         return $matches[0];
@@ -276,7 +276,7 @@ class css_cleaner
      *
      * @return string
      */
-    public static function _read_string($code, &$offset)
+    public static function _read_string(string $code, int &$offset): string
     {
         $string = '';
         $in_string = false;
@@ -298,8 +298,8 @@ class css_cleaner
         return $string;
     }
 
-    protected function _default_tokens()
+    protected function _default_tokens(): array
     {
-        return array();
+        return [];
     }
 }

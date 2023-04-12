@@ -42,11 +42,11 @@ if ($opts === false) {
 }
 
 //Clean options from $argv
-while (count($argv) > 0 && preg_match('/^-/', $argv[0])) {
+while (count($argv) > 0 && str_starts_with($argv[0], '-')) {
     array_shift($argv);
 }
 
-function has()
+function has(): bool
 {
     global $opts;
     foreach (func_get_args() as $arg) {
@@ -63,7 +63,7 @@ function get($option, $default = '')
     return $opts[$option] ?? $default;
 }
 
-function err($msg)
+function err($msg): void
 {
     fwrite(STDERR, "FATAL ERROR: $msg \n");
 }
@@ -165,7 +165,7 @@ try {
 }
 
 
-function ReadableTime($time)
+function ReadableTime($time): string
 {
     if ($time > 60) {
         $min = floor($time / 60);
@@ -180,7 +180,7 @@ function ReadableTime($time)
     }
 }
 
-function ReadableSize($size, $kilobyte = 1024, $format = '%size% %unit%')
+function ReadableSize($size, $kilobyte = 1024, $format = '%size% %unit%'): string
 {
     if ($size < $kilobyte) {
         $unit = 'bytes';
