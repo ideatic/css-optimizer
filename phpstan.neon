@@ -1,0 +1,22 @@
+parameters:
+  level: 6
+  paths:
+    - ./
+  scanDirectories:
+    - src
+  treatPhpDocTypesAsCertain: false
+  polluteScopeWithLoopInitialAssignments: false
+  polluteScopeWithAlwaysIterableForeach: false
+  checkDynamicProperties: %featureToggles.bleedingEdge%
+  checkExplicitMixedMissingReturn: true
+  checkFunctionNameCase: true
+  checkInternalClassCaseSensitivity: true
+  reportMaybesInMethodSignatures: true
+  reportStaticMethodSignatures: true
+  reportMaybesInPropertyPhpDocTypes: true
+  bootstrapFiles:
+    - vendor/autoload.php
+  excludePaths:
+    - vendor/*
+  parallel:
+    processTimeout: 300.0

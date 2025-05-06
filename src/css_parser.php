@@ -10,7 +10,7 @@
 class css_parser
 {
 
-    public $trim = true;
+    public bool $trim = true;
 
     /**
      * Parse CSS code, returning its OO representation
@@ -19,7 +19,7 @@ class css_parser
      *
      * @return css_group
      */
-    public function parse($css)
+    public function parse(string $css): css_group
     {
         # Split at all position not after the start: ^ 
         # and not before the end: $ 
@@ -107,7 +107,7 @@ class css_parser
         return $this->trim ? trim($val) : $val;
     }
 
-    private function _read_string($chars, &$i)
+    private function _read_string($chars, &$i): bool|string
     {
         //Read until '*/' is found
         $delimiter = $chars[$i];
@@ -127,7 +127,7 @@ class css_parser
     /**
      * @return css_element
      */
-    private function _read_comment($chars, &$i)
+    private function _read_comment($chars, &$i): css_element|bool
     {
         //Read until '*/' is found
         $value = '';
@@ -150,26 +150,20 @@ class css_parser
 
 class css_element
 {
-
-    /**
-     *
-     * @var css_group
-     */
-    public $parent;
+    public css_group|null $parent = null;
     public $value;
 
     /**
      * enum(property, comment, import)
-     * @var string
      */
-    public $type;
+    public string $type;
 
-    public function render($compressed = false)
+    public function render(bool $compressed = false):string
     {
         return $this->value;
     }
 
-    public function remove()
+    public function remove(): void
     {
         foreach ($this->parent->children as $key => $value) {
             if ($this === $value) {
@@ -182,15 +176,15 @@ class css_element
     /**
      * @return css_element[]
      */
-    public function siblings($type = null, $include_self = false)
+    public function siblings($type = null, bool $include_self = false): array
     {
         if (!isset($this->parent)) {
-            return array();
+            return [];
         }
-        $siblings = array();
+        $siblings = [];
         foreach ($this->parent->children as $sibling) {
             if ($include_self || $sibling !== $this) {
-                if (isset($type) ? $sibling instanceof $type : true) {
+                if (!isset($type) || $sibling instanceof $type) {
                     $siblings[] = $sibling;
                 }
             }
@@ -198,7 +192,7 @@ class css_element
         return $siblings;
     }
 
-    public function insert_after($element)
+    public function insert_after(css_element $element): void
     {
         if (!isset($this->parent)) {
             throw new RuntimeException('The current element has been removed');
@@ -211,7 +205,7 @@ class css_element
             }
         }
 
-        $this->parent->children = array_merge(array_slice($this->parent->children, 0, $pos), array($element), array_slice($this->parent->children, $pos));
+        $this->parent->children = array_merge(array_slice($this->parent->children, 0, $pos), [$element], array_slice($this->parent->children, $pos));
     }
 
     /**
@@ -220,9 +214,9 @@ class css_element
      *
      * @return css_element[]
      */
-    public function parents($include_self = true)
+    public function parents(bool $include_self = true): array
     {
-        $found = array();
+        $found = [];
 
         $current = $include_self ? $this : $this->parent;
         while ($current) {
@@ -257,16 +251,16 @@ class css_group extends css_element
      *
      * @var css_property[]|css_group[]
      */
-    public $children = array();
+    public array $children = [];
 
     public function __construct()
     {
         $this->type = 'property';
     }
 
-    public function render($compressed = false)
+    public function render(bool$compressed = false): string
     {
-        $content = array();
+        $content = [];
         foreach ($this->children as $child) {
             $content[] = $child->render($compressed);
         }
@@ -287,16 +281,16 @@ class css_group extends css_element
     /**
      * Gets or sets the different selectors represented by this group
      *
-     * @param string[] $set
+     * @param string[]|null $set
      *
      * @return string[]
      */
-    public function selectors($set = null)
+    public function selectors(?array $set = null): array
     {
         if (isset($set)) {
             $this->name = implode(', ', $set);
         }
-        $parts = array();
+        $parts = [];
 
         if ($this->name) {
             /**
@@ -310,7 +304,7 @@ class css_group extends css_element
         return $parts;
     }
 
-    public function add_child($element)
+    public function add_child(css_element $element): void
     {
         $element->parent = $this;
         $this->children[] = $element;
@@ -323,14 +317,14 @@ class css_group extends css_element
      *
      * @return css_element[]
      */
-    public function find_all($type)
+    public function find_all(string $type): array
     {
-        $result = array();
+        $result = [];
         $this->_find($type, $this->children, $result);
         return $result;
     }
 
-    private function _find($type, $items, &$result)
+    private function _find($type, $items, &$result): void
     {
         foreach ($items as $element) {
             if ($element instanceof $type) {
@@ -347,26 +341,26 @@ class css_group extends css_element
 class css_property extends css_element
 {
 
-    public $name;
+    public string|null $name;
 
-    public function __construct($name = null, $value = null)
+    public function __construct(?string $name = null, string|int|null $value = null)
     {
         $this->type = 'property';
         $this->name = $name;
         $this->value = $value;
     }
 
-    public function render($compressed = false)
+    public function render($compressed = false): string
     {
         $last = $this->parent && end($this->parent->children) === $this;
         if ($compressed && $last) {
-            return "$this->name:$this->value";
+            return "{$this->name}:{$this->value}";
         } else {
-            return "$this->name:$this->value;";
+            return "{$this->name}:{$this->value};";
         }
     }
 
-    public function insert_after($property, $value = null)
+    public function insert_after($property, $value = null): void
     {
         if (is_string($property)) {
             $property = new self($property, $value);

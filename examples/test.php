@@ -119,11 +119,11 @@ require 'common.php';
         <div id="editor">
             <div>
                 <label for="source">Paste your CSS</label>
-                <textarea id="source" name="source"><?php echo isset($_POST['source']) ? $_POST['source'] : file_get_contents('test-files/test.css') ?></textarea>
+                <textarea id="source" name="source"><?php echo $_POST['source'] ?? file_get_contents('test-files/test.css') ?></textarea>
             </div>
             <div>
                 <label for="result">Optimized CSS</label>
-                <textarea id="result" name="result"><?php echo isset($process_data['css']) ? $process_data['css'] : ''; ?></textarea>
+                <textarea id="result" name="result"><?php echo $process_data['css'] ?? ''; ?></textarea>
             </div>
         </div>
         <div id="extra">
@@ -159,22 +159,22 @@ require 'common.php';
                 <div>
                     <div>
                         <input type="checkbox" id="prefix-webkit" name="prefix[webkit]" <?php echo
-                        $process_data['settings']['prefixes'] == 'all' || strpos($process_data['settings']['prefixes'], 'webkit') !== false ? 'checked' : ''; ?> /><label
+                        $process_data['settings']['prefixes'] == 'all' || str_contains($process_data['settings']['prefixes'], 'webkit') ? 'checked' : ''; ?> /><label
                             for="prefix-webkit" title="Add prefix for webkit-based browser such as Chrome or Safari">Webkit</label>
                     </div>
                     <div>
                         <input type="checkbox" id="prefix-mozilla" name="prefix[mozilla]" <?php echo
-                        $process_data['settings']['prefixes'] == 'all' || strpos($process_data['settings']['prefixes'], 'mozilla') !== false ? 'checked' : ''; ?> /><label
+                        $process_data['settings']['prefixes'] == 'all' || str_contains($process_data['settings']['prefixes'], 'mozilla') ? 'checked' : ''; ?> /><label
                             for="prefix-mozilla" title="Add prefix for Mozilla Firefox">Firefox</label>
                     </div>
                     <div>
                         <input type="checkbox" id="prefix-msie" name="prefix[msie]" <?php echo
-                        $process_data['settings']['prefixes'] == 'all' || strpos($process_data['settings']['prefixes'], 'msie') !== false ? 'checked' : ''; ?> /><label
+                        $process_data['settings']['prefixes'] == 'all' || str_contains($process_data['settings']['prefixes'], 'msie') ? 'checked' : ''; ?> /><label
                             for="prefix-msie" title="Add prefix for Internet Explorer">Internet Explorer</label>
                     </div>
                     <div>
                         <input type="checkbox" id="prefix-opera" name="prefix[opera]" <?php echo
-                        $process_data['settings']['prefixes'] == 'all' || strpos($process_data['settings']['prefixes'], 'opera') !== false ? 'checked' : ''; ?> /><label
+                        $process_data['settings']['prefixes'] == 'all' || str_contains($process_data['settings']['prefixes'], 'opera') ? 'checked' : ''; ?> /><label
                             for="prefix-opera" title="Add prefix for Opera Browser">Opera</label>
                     </div>
 
@@ -227,7 +227,7 @@ require 'common.php';
     </html>
 <?php
 
-function do_optimization()
+function do_optimization(): array
 {
     $result = array();
 
@@ -236,7 +236,7 @@ function do_optimization()
     foreach (array('remove_comments', 'compress', 'optimize', 'extra_optimize', 'remove_ie_hacks') as $prop) {
         $settings[$prop] = !empty($_POST) ? isset($_POST[$prop]) : $default_optimizer->$prop;
     }
-    $settings['prefixes'] = empty($_POST) ? 'all' : implode(',', array_keys(isset($_POST['prefix']) ? $_POST['prefix'] : array()));
+    $settings['prefixes'] = empty($_POST) ? 'all' : implode(',', array_keys($_POST['prefix'] ?? []));
     $result['settings'] = $settings;
     $result['errors'] = '';
 
@@ -251,13 +251,8 @@ function do_optimization()
     return $result;
 }
 
-function optimize($css, $settings, &$errors = null)
+function optimize($css, $settings, &$errors = null): css_group|string
 {
     $optimizer = new css_optimizer($settings);
-
-    $result = $optimizer->process($css);
-
-    //$errors = $optimizer->errors();
-
-    return $result;
+    return $optimizer->process($css);
 }

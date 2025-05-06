@@ -94,7 +94,7 @@ require 'common.php';
     </html>
 <?php
 
-function do_optimization()
+function do_optimization(): array
 {
 
     $settings = array();
