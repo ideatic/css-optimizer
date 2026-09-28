@@ -108,7 +108,7 @@ class css_optimizer
 
     protected function _optimize(css_group $document): void
     {
-        $color_regex = '/(^|\b)(\#[0-9A-Fa-f]{3,6}|\w+\(.*?\)|' . implode('|', array_map('preg_quote', array_keys(css_color::color_names()))) . ')($|\b)/i';
+        $color_regex = '/(^|\b)(\#[0-9A-Fa-f]{3,6}|\w+\(.*?\)|' . implode('|', array_map(preg_quote(...), array_keys(css_color::color_names()))) . ')($|\b)/i';
 
         foreach ($document->find_all('css_property') as $property) {
             //Optimize font-weight
@@ -124,7 +124,7 @@ class css_optimizer
 
             //Optimize colors       
             if (!in_array($property->name, ['filter', '-ms-filter'])) {
-                $property->value = preg_replace_callback($color_regex, [$this, '_compress_color'], $property->value);
+                $property->value = preg_replace_callback($color_regex, $this->_compress_color(...), $property->value);
             }
 
             //Optimize background position

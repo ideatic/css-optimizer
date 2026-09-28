@@ -10,6 +10,9 @@
             "homepage": "http://www.ideatic.net/"
         }
     ],
+    "require": {
+        "php": ">=8.5"
+    },
     "autoload": {
         "classmap": ["src/"]
     },
