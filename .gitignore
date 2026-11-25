@@ -5,6 +5,7 @@ private/
 vendor/
 composer.lock
 composer.phar
+.phpunit.result.cache
 
 # OS crap
 Thumbs.db

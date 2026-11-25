@@ -14,8 +14,27 @@
         "php": ">=8.5"
     },
     "autoload": {
-        "classmap": ["src/"]
+        "classmap": [
+            "src/"
+        ]
     },
-    "keywords": ["css"],
-    "bin": ["cli/css_optimizer.php"]
+    "keywords": [
+        "css"
+    ],
+    "bin": [
+        "cli/css_optimizer.php"
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^13.4",
+        "phpstan/phpstan": "^2.3"
+    },
+    "autoload-dev": {
+        "classmap": [
+            "tests/"
+        ]
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse --no-progress"
+    }
 }

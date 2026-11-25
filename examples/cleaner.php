@@ -54,7 +54,7 @@ require 'common.php';
                         <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo strlen(gzencode($process_data['css'], 9)) ?> bytes gzipped)</li>
                         <li>Difference: <strong><?php printf(
                                     '%s (%+g%%)',
-                                    ReadableSize(strlen($process_data['css']) - strlen($process_data['source']), true),
+                                    ReadableSize(strlen($process_data['css']) - strlen($process_data['source'])),
                                     round(strlen($process_data['css']) / strlen($process_data['source']), 2) * 100
                                 ) ?></strong></li>
                     </ul>
@@ -94,15 +94,17 @@ require 'common.php';
     </html>
 <?php
 
+/**
+ * @return array<string, mixed>
+ */
 function do_optimization(): array
 {
-
-    $settings = array();
     $cleaner = new css_cleaner();
-    foreach (array('method', 'compress') as $prop) {
-        $settings[$prop] = $_POST[$prop] ?? ($cleaner->$prop ?? false);
-        $cleaner->$prop = $settings[$prop];
-    }
+    $cleaner->method = (int)($_POST['method'] ?? $cleaner->method);
+    $settings = [
+        'method'   => $cleaner->method,
+        'compress' => !empty($_POST) ? isset($_POST['compress']) : true,
+    ];
 
 
     $result = array();

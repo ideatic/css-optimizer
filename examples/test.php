@@ -190,7 +190,7 @@ require 'common.php';
                         <li>Final size: <?php echo ReadableSize(strlen($process_data['css'])) ?> (<?php echo strlen(gzencode($process_data['css'], 9)) ?> bytes gzipped)</li>
                         <li>Difference: <strong><?php printf(
                                     '%s (%+g%%)',
-                                    ReadableSize(strlen($process_data['css']) - strlen($process_data['source']), true),
+                                    ReadableSize(strlen($process_data['css']) - strlen($process_data['source'])),
                                     round(strlen($process_data['css']) / strlen($process_data['source']), 2) * 100
                                 ) ?></strong></li>
                     </ul>
@@ -227,6 +227,9 @@ require 'common.php';
     </html>
 <?php
 
+/**
+ * @return array<string, mixed>
+ */
 function do_optimization(): array
 {
     $result = array();
@@ -244,15 +247,9 @@ function do_optimization(): array
         $result['source'] = $_POST['source'];
 
         $start = microtime(true);
-        $result['css'] = optimize($result['source'], $settings, $settings['errors']);
+        $result['css'] = new css_optimizer($settings)->process((string)$result['source']);
         $result['execution_time'] = microtime(true) - $start;
     }
 
     return $result;
-}
-
-function optimize($css, $settings, &$errors = null): css_group|string
-{
-    $optimizer = new css_optimizer($settings);
-    return $optimizer->process($css);
 }

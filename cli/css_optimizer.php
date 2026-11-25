@@ -1,28 +1,32 @@
 #!/usr/bin/env php
 <?php
+
+declare(strict_types=1);
+
 // Command line utility to optimize CSS using css_optimizer
 // Javier Marín <contacto@ideatic.net>, 2014
 // Based on leafo/lessphp cli utility
 
 error_reporting(E_ALL);
 
-if (file_exists(dirname(__FILE__) . '/../../../autoload.php')) {
-    require dirname(__FILE__) . '/../../../autoload.php';
+if (file_exists(__DIR__ . '/../../../autoload.php')) {
+    require __DIR__ . '/../../../autoload.php';
 } else {
-    require dirname(__FILE__) . '/../vendor/autoload.php';
+    require __DIR__ . '/../vendor/autoload.php';
 }
 
-$exe = array_shift($argv); // remove filename
+$args = $_SERVER['argv'] ?? [];
+$exe = (string)array_shift($args);
 
-$HELP = <<<EOT
-Usage: $exe [options] input-file [output-file]
+$help = <<<EOT
+Usage: {$exe} [options] input-file [output-file]
 
 Options include:
 
     -h, --help  Show this message
     -c=comp     Compress CSS (default: true)
     -o=opt      Optimize CSS (default: true)
-    -v=vendors  Add vendor prefixes (default: webkit,msie,firefox)
+    -v=vendors  Add vendor prefixes: all, none or a list of webkit,mozilla,opera,msie (default: webkit,msie,mozilla)
     -s          Read from STDIN instead of input-file
     -u          Clean unused selectors (css_cleaner)
 
@@ -36,171 +40,126 @@ css_cleaner options:
 
 EOT;
 
-$opts = getopt('hc:o:suv:p:m:e:r:', array('help'));
+$opts = getopt('hc:o:suv:p:m:e:r:', ['help'], $rest_index);
 if ($opts === false) {
-    exit($HELP);
+    exit($help);
 }
 
-//Clean options from $argv
-while (count($argv) > 0 && str_starts_with($argv[0], '-')) {
-    array_shift($argv);
+// Quitar las opciones de los argumentos
+$args = array_values(array_slice($_SERVER['argv'] ?? [], $rest_index));
+
+// Leer una opción como cadena (getopt deja el '=' de "-c=false")
+$option = static fn(string $name, string $default = ''): string => isset($opts[$name]) && is_string($opts[$name]) ? ltrim($opts[$name], '=') : $default;
+$flag = static fn(string $name, bool $default): bool => isset($opts[$name]) ? filter_var($option($name), FILTER_VALIDATE_BOOLEAN) : $default;
+$error = static function (string $message): void {
+    fwrite(STDERR, "FATAL ERROR: {$message}\n");
+};
+
+if (isset($opts['h']) || isset($opts['help'])) {
+    exit($help);
 }
 
-function has(): bool
-{
-    global $opts;
-    foreach (func_get_args() as $arg) {
-        if (isset($opts[$arg])) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function get($option, $default = '')
-{
-    global $opts;
-    return $opts[$option] ?? $default;
-}
-
-function err($msg): void
-{
-    fwrite(STDERR, "FATAL ERROR: $msg \n");
-}
-
-if (has("h", "help")) {
-    exit($HELP);
-}
-
-if (php_sapi_name() != "cli") {
-    err("$exe must be run in the command line.");
+if (PHP_SAPI !== 'cli') {
+    $error("{$exe} must be run in the command line.");
     exit(1);
 }
 
-
-//Process
 try {
     $start = microtime(true);
 
-    //Get input
-    if (has("s")) {
-        //Read from STDIN
-        if (!empty($argv)) {
-            $data = $argv[0];
-        } else {
-            $data = "";
-            while (!feof(STDIN)) {
-                $data .= fread(STDIN, 8192);
-            }
-        }
+    // Leer la entrada
+    if (isset($opts['s'])) {
+        $data = $args !== [] ? (string)array_shift($args) : (string)stream_get_contents(STDIN);
     } else {
-        //Read from input file
-        $in = array_shift($argv);
-
-        if (!$in) {
-            echo $HELP;
+        $in = array_shift($args);
+        if ($in === null || $in === '') {
+            echo $help;
             exit(1);
         }
 
         $data = file_get_contents($in);
-
         if ($data === false) {
-            err("Could not read to file $in");
+            $error("Could not read file {$in}");
             exit(1);
         }
     }
 
-    //Parse input
-    $parser = new css_parser();
-    $css_doc = $parser->parse($data);
+    $css_doc = new css_parser()->parse($data);
 
-    if (has('u')) {
-        //css_cleaner
-        if (!has('p')) {
-            err('Please, indicate the project source path. Multiple paths can be concatenated using ' . PATH_SEPARATOR);
+    // Eliminar selectores no usados
+    if (isset($opts['u'])) {
+        if (!isset($opts['p'])) {
+            $error('Please, indicate the project source path. Multiple paths can be concatenated using ' . PATH_SEPARATOR);
             exit(1);
         }
         $cleaner = new css_cleaner();
         $cleaner->verbose = true;
-        $cleaner->project_files = explode(PATH_SEPARATOR, $opts['p']);
-        $cleaner->method = get('m', 'safe') == 'safe' ? css_cleaner::METHOD_SAFE : css_cleaner::METHOD_BEST_CLEAN;
-        if (has('e')) {
-            $cleaner->extensions = get('e');
+        $cleaner->project_files = explode(PATH_SEPARATOR, $option('p'));
+        $cleaner->method = $option('m', 'safe') === 'safe' ? css_cleaner::METHOD_SAFE : css_cleaner::METHOD_BEST_CLEAN;
+        if (isset($opts['e'])) {
+            $cleaner->extensions = $option('e');
         }
-        if (has('r')) {
-            $cleaner->report_path = get('r');
+        if (isset($opts['r'])) {
+            $cleaner->report_path = $option('r');
         }
         $cleaner->clean($css_doc);
     }
 
-    //Optimize
-    $optimizer = new css_optimizer();
-    $optimizer->compress = get('c', true);
-    $optimizer->optimize = get('o', true);
-    $optimizer->prefixes = get('v', 'webkit,msie,firefox');
-
+    // Optimizar
+    $vendors = $option('v', 'webkit,msie,mozilla');
+    $optimizer = new css_optimizer(
+        [
+            'compress' => $flag('c', true),
+            'optimize' => $flag('o', true),
+            'prefixes' => $vendors === 'none' ? '' : $vendors,
+        ],
+    );
     $optimizer->process($css_doc);
 
-    //Generate output
     $out = $css_doc->render($optimizer->compress);
 
-    //Save output
-    if (!$fout = array_shift($argv)) {
+    // Guardar o mostrar el resultado
+    $fout = array_shift($args);
+    if ($fout === null || $fout === '') {
         echo $out;
     } else {
-        //Show stats
+        $gzip = static fn(string $text): string => ReadableSize(strlen((string)gzencode($text, 9)));
+        $ratio = $data === '' ? 100 : round(strlen($out) / strlen($data) * 100);
+
         echo 'Optimized in ' . ReadableTime(microtime(true) - $start) . "\n";
-        echo 'Input size ' . ReadableSize(strlen($data)) . ' (' . ReadableSize(strlen(gzencode($data, 9))) . ' gziped)' . "\n";
-        $ratio = round(strlen($out) / strlen($data), 2) * 100;
-        echo 'Output size ' . ReadableSize(strlen($out)) . " ($ratio% of original, " . ReadableSize(strlen(gzencode($out, 9))) . ' gziped)' . "\n";
+        echo 'Input size ' . ReadableSize(strlen($data)) . " ({$gzip($data)} gziped)\n";
+        echo 'Output size ' . ReadableSize(strlen($out)) . " ({$ratio}% of original, {$gzip($out)} gziped)\n";
 
-
-        //Save file
-        file_put_contents($fout, $out);
+        if (file_put_contents($fout, $out) === false) {
+            $error("Could not write file {$fout}");
+            exit(1);
+        }
     }
-
-} catch (exception $ex) {
-    err($ex->getMessage());
+} catch (Exception $ex) {
+    $error($ex->getMessage());
     exit(1);
 }
 
-
-function ReadableTime($time): string
+function ReadableTime(float $time): string
 {
-    if ($time > 60) {
-        $min = floor($time / 60);
-        $sec = round($time) % 60;
-        return "{$min}m {$sec}s";
-    } elseif ($time > 1) {
-        return round($time, 3) . ' s';
-    } elseif ($time > 0.001) {
-        return round($time * 1000) . ' ms';
-    } else {
-        return round($time * 1000000) . ' us';
-    }
+    return match (true) {
+        $time > 60 => floor($time / 60) . 'm ' . (round($time) % 60) . 's',
+        $time > 1 => round($time, 3) . ' s',
+        $time > 0.001 => round($time * 1000) . ' ms',
+        default => round($time * 1000000) . ' us',
+    };
 }
 
-function ReadableSize($size, $kilobyte = 1024, $format = '%size% %unit%'): string
+function ReadableSize(int|float $size, int $kilobyte = 1024, string $format = '%size% %unit%'): string
 {
-    if ($size < $kilobyte) {
-        $unit = 'bytes';
-    } else {
-        $size = $size / $kilobyte;
-        $units = array('KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
-        foreach ($units as $unit) {
-            if ($size > $kilobyte) {
-                $size = $size / $kilobyte;
-            } else {
-                break;
-            }
+    $unit = 'bytes';
+    foreach (['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] as $next_unit) {
+        if ($size < $kilobyte) {
+            break;
         }
+        $size /= $kilobyte;
+        $unit = $next_unit;
     }
 
-    return strtr(
-        $format,
-        array(
-            '%size%' => number_format($size, 2),
-            '%unit%' => $unit
-        )
-    );
+    return strtr($format, ['%size%' => number_format($size, 2), '%unit%' => $unit]);
 }
